@@ -50,3 +50,6 @@ Offer three choices:
 
 - **CRV (Continuous):**  
   $$\mu_r(a) = \mathbb{E}[(X-a)^r] = \int_{-\infty}^{\infty} (x-a)^r \, f(x)\, dx$$  
+
+## Link 
+https://toful1.streamlit.app/
