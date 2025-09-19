@@ -2,7 +2,8 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy import integrate
+from scipy import integrate, optimize
+import sympy as sp
 import pandas as pd
 from typing import Tuple, Union, List
 import warnings
@@ -16,232 +17,507 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Enhanced CSS with modern, clean design
+# Enhanced CSS with modern dark-friendly design
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
     .main {
         font-family: 'Inter', sans-serif;
     }
-    /* Clean gradient header */
+
+    /* Animated gradient background */
     .main-header {
-        background: linear-gradient(135deg, #4361ee, #3a0ca3);
-        padding: 2.5rem 2rem;
-        border-radius: 16px;
+        background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
+        background-size: 400% 400%;
+        animation: gradientShift 15s ease infinite;
+        padding: 3rem 2rem;
+        border-radius: 20px;
         margin-bottom: 2rem;
         text-align: center;
         color: white;
-        box-shadow: 0 6px 20px rgba(67, 97, 238, 0.2);
+        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+        position: relative;
+        overflow: hidden;
     }
+
+    .main-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+    }
+
+    .main-header * {
+        position: relative;
+        z-index: 1;
+    }
+
+    @keyframes gradientShift {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
     .main-header h1 {
         margin: 0;
-        font-size: 2.8rem;
+        font-size: 3rem;
         font-weight: 700;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        background: linear-gradient(45deg, #ffffff, #f0f0f0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
     }
+
     .main-header p {
         margin: 1rem 0 0 0;
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         opacity: 0.95;
         font-weight: 400;
+        text-shadow: 0 1px 5px rgba(0,0,0,0.2);
     }
-    /* Clean input styling */
-    .stSelectbox > div > div > div,
+
+    /* Glassmorphism inputs */
+    .stSelectbox > div > div > div {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        color: #2d3436;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .stSelectbox > div > div > div:hover {
+        background: rgba(255, 255, 255, 0.95);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    }
+
     .stTextInput > div > div > input,
     .stTextArea > div > div > textarea,
     .stNumberInput > div > div > input {
-        background: rgba(255, 255, 255, 0.95);
-        border: 2px solid #e2e8f0;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
         border-radius: 12px;
         color: #2d3436;
         font-size: 14px;
         transition: all 0.3s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        padding: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
-    .stSelectbox > div > div > div:hover,
+
     .stTextInput > div > div > input:focus,
     .stTextArea > div > div > textarea:focus,
     .stNumberInput > div > div > input:focus {
-        border-color: #4361ee;
-        box-shadow: 0 0 15px rgba(67, 97, 238, 0.2);
-        transform: translateY(-1px);
+        background: rgba(255, 255, 255, 1);
+        border: 2px solid #667eea;
+        box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        transform: scale(1.02);
     }
+
     .stTextArea > div > div > textarea {
         font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
-        min-height: 120px;
     }
-    /* Metric cards with subtle animation */
+
+    /* Animated metric cards */
     .metric-container {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem 1.5rem;
+        border-radius: 16px;
+        color: white;
         text-align: center;
         margin: 0.5rem 0;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        transition: all 0.3s ease;
-        border: 2px solid #f1f5f9;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
     }
+
+    .metric-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s;
+    }
+
     .metric-container:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 16px rgba(0,0,0,0.12);
-        border-color: #cbd5e1;
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
     }
+
+    .metric-container:hover::before {
+        left: 100%;
+    }
+
     .metric-label {
         font-size: 0.9rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: #475569;
+        font-weight: 500;
+        margin-bottom: 0.8rem;
+        opacity: 0.9;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 1px;
     }
+
     .metric-value {
-        font-size: 1.6rem;
+        font-size: 1.8rem;
         font-weight: 700;
         margin: 0;
         font-family: 'SF Mono', monospace;
-        color: #1e293b;
     }
-    /* Clean message boxes */
+
+    /* Enhanced message boxes with icons */
     .error-box, .success-box, .info-box, .warning-box {
-        padding: 1.2rem;
+        padding: 1.5rem;
         border-radius: 12px;
         margin: 1rem 0;
         font-weight: 500;
-        border-left: 4px solid;
-        background-color: white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        position: relative;
+        backdrop-filter: blur(10px);
+        border: 1px solid;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     }
+
     .error-box {
-        border-left-color: #ef4444;
-        color: #dc2626;
+        background: linear-gradient(135deg, rgba(255, 71, 87, 0.1), rgba(255, 71, 87, 0.05));
+        border-color: #ff4757;
+        color: #d63031;
     }
+
     .success-box {
-        border-left-color: #10b981;
-        color: #059669;
+        background: linear-gradient(135deg, rgba(46, 213, 115, 0.1), rgba(46, 213, 115, 0.05));
+        border-color: #2ed573;
+        color: #00b894;
     }
+
     .info-box {
-        border-left-color: #3b82f6;
-        color: #2563eb;
+        background: linear-gradient(135deg, rgba(116, 185, 255, 0.1), rgba(116, 185, 255, 0.05));
+        border-color: #74b9ff;
+        color: #0984e3;
     }
+
     .warning-box {
-        border-left-color: #f59e0b;
-        color: #d97706;
+        background: linear-gradient(135deg, rgba(255, 167, 38, 0.1), rgba(255, 167, 38, 0.05));
+        border-color: #ffa726;
+        color: #ef6c00;
     }
-    /* Section headers */
+
+    /* Section headers with underline animation */
     .section-header {
-        color: #1e293b !important;
-        font-size: 1.5rem;
+        color: white !important;
+        font-size: 1.4rem;
         font-weight: 700 !important;
         margin: 2rem 0 1rem 0;
         padding-bottom: 0.5rem;
-        border-bottom: 2px solid #e2e8f0;
+        position: relative;
+        display: inline-block;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
     }
-    /* Clean dataframe styling */
+
+    .section-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        transition: width 0.3s ease;
+        border-radius: 2px;
+    }
+
+    .section-header:hover::after {
+        width: 100%;
+    }
+
+    /* Enhanced dataframe styling */
     .dataframe {
         font-size: 14px;
-        border-radius: 8px;
+        border-radius: 12px;
         overflow: hidden;
-        border: 1px solid #e2e8f0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        border: none;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         background: white;
     }
+
     .dataframe th {
-        background-color: #f8fafc;
-        color: #334155;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
         font-weight: 600;
-        padding: 12px 10px;
-        text-align: left;
+        padding: 15px 12px;
+        border: none;
     }
+
     .dataframe td {
-        padding: 10px;
-        border-bottom: 1px solid #f1f5f9;
+        padding: 12px;
+        border-bottom: 1px solid #f1f3f4;
+        transition: background-color 0.2s ease;
     }
-    .dataframe tr:hover {
-        background-color: #f8fafc;
+
+    .dataframe tr:hover td {
+        background-color: #f8f9fa;
     }
+
     /* Sidebar enhancements */
     .css-1d391kg {
-        background: #f8fafc;
+        background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
     }
+
     /* Custom expander styling */
     .streamlit-expanderHeader {
-        background: #f1f5f9;
+        background: rgba(255, 255, 255, 0.1);
         border-radius: 8px;
-        font-weight: 600;
-        color: #334155;
-        padding: 10px 15px;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
     }
+
     .streamlit-expanderHeader:hover {
-        background: #e2e8f0;
+        background: rgba(102, 126, 234, 0.1);
+        transform: translateX(5px);
     }
-    /* Progress bar */
-    .stProgress > div > div > div > div {
-        background-color: #4361ee;
+
+    /* Loading animation */
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
     }
-    /* Footer */
-    .footer {
-        text-align: center;
-        padding: 2rem 0 1rem;
-        color: #64748b;
-        font-size: 0.9rem;
-        border-top: 1px solid #e2e8f0;
-        margin-top: 2rem;
+
+    .loading {
+        animation: pulse 2s infinite;
+    }
+
+    /* Progress indicators */
+    .progress-container {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 4px;
+        margin: 1rem 0;
+    }
+
+    .progress-bar {
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 16px;
+        height: 8px;
+        transition: width 0.3s ease;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #667eea, #764ba2);
+        border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #5a6fd8, #6a42a0);
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Main Header
+# Animated main header
 st.markdown("""
 <div class="main-header">
     <h1>Moments Calculator</h1>
-    <p>Calculate statistical moments for discrete and continuous random variables</p>
+
 </div>
 """, unsafe_allow_html=True)
 
+class InfiniteSeriesHandler:
+    """Enhanced handler for infinite discrete series with better convergence detection"""
+
+    @staticmethod
+    def detect_series_pattern(values: List[float]) -> Tuple[str, dict]:
+        """Detect the pattern in a series and return type and parameters"""
+        if len(values) < 2:
+            return "unknown", {}
+
+        # Check for arithmetic progression
+        diffs = [values[i+1] - values[i] for i in range(len(values)-1)]
+        if len(set(diffs)) == 1:  # Constant difference
+            return "arithmetic", {"start": values[0], "diff": diffs[0]}
+
+        # Check for geometric progression
+        if all(v != 0 for v in values):
+            ratios = [values[i+1] / values[i] for i in range(len(values)-1)]
+            if all(abs(ratios[i] - ratios[0]) < 1e-10 for i in range(len(ratios))):
+                return "geometric", {"start": values[0], "ratio": ratios[0]}
+
+        return "custom", {"values": values}
+
+    @staticmethod
+    def generate_extended_series(pattern_type: str, params: dict, max_terms: int = 100) -> List[float]:
+        """Generate extended series based on detected pattern"""
+        if pattern_type == "arithmetic":
+            start, diff = params["start"], params["diff"]
+            return [start + i * diff for i in range(max_terms)]
+
+        elif pattern_type == "geometric":
+            start, ratio = params["start"], params["ratio"]
+            return [start * (ratio ** i) for i in range(max_terms)]
+
+        else:  # custom or unknown
+            base_values = params.get("values", [0])
+            # Extend with last difference if possible
+            if len(base_values) >= 2:
+                diff = base_values[-1] - base_values[-2]
+                extended = base_values.copy()
+                while len(extended) < max_terms:
+                    extended.append(extended[-1] + diff)
+                return extended
+            else:
+                # Default to integers starting from the first value
+                return [base_values[0] + i for i in range(max_terms)]
+
+    @staticmethod
+    def estimate_infinite_sum(func_str: str, values: List[float], pattern_type: str, params: dict) -> Tuple[float, bool, str]:
+        """Estimate the sum of infinite series with convergence analysis"""
+        safe_dict = {
+            'x': 0, 'factorial': np.math.factorial, 'sqrt': np.sqrt,
+            'exp': np.exp, 'log': np.log, 'sin': np.sin, 'cos': np.cos,
+            'tan': np.tan, 'pi': np.pi, 'e': np.e
+        }
+
+        # Calculate first 20 terms
+        partial_sum = 0
+        terms = []
+
+        try:
+            for i, x_val in enumerate(values[:20]):
+                safe_dict['x'] = x_val
+                term = eval(func_str, {"__builtins__": {}}, safe_dict)
+                terms.append(term)
+                partial_sum += term
+
+            # Convergence analysis
+            if len(terms) >= 10:
+                # Check if terms are decreasing and approaching zero
+                recent_terms = terms[-5:]
+                if all(abs(t) < 1e-10 for t in recent_terms):
+                    return partial_sum, True, f"Series converges (terms → 0, sum ≈ {partial_sum:.6f})"
+
+                # Ratio test for geometric-like series
+                if len(terms) >= 15 and all(t != 0 for t in terms[-10:]):
+                    ratios = [abs(terms[i+1]/terms[i]) for i in range(len(terms)-6, len(terms)-1)]
+                    avg_ratio = sum(ratios) / len(ratios)
+
+                    if avg_ratio < 0.9:  # Strong convergence
+                        # Estimate remaining sum using geometric series formula
+                        remaining_estimate = terms[-1] * avg_ratio / (1 - avg_ratio)
+                        estimated_total = partial_sum + remaining_estimate
+                        return estimated_total, True, f"Series converges (ratio test, sum ≈ {estimated_total:.6f})"
+                    elif avg_ratio > 1.1:
+                        return partial_sum, False, "Series appears to diverge (ratio test)"
+
+                # Check for alternating series
+                if len(terms) >= 10:
+                    signs = [1 if t >= 0 else -1 for t in terms[-10:]]
+                    if len(set(signs)) == 2:  # Both positive and negative
+                        abs_terms = [abs(t) for t in terms[-5:]]
+                        if all(abs_terms[i] >= abs_terms[i+1] for i in range(len(abs_terms)-1)):
+                            return partial_sum, True, f"Alternating series converges (sum ≈ {partial_sum:.6f})"
+
+            # Default: use partial sum with warning
+            return partial_sum, False, f"Convergence uncertain (partial sum of {len(terms)} terms: {partial_sum:.6f})"
+
+        except Exception as e:
+            return 0, False, f"Error in series evaluation: {str(e)}"
+
 class EnhancedProbabilityValidator:
     @staticmethod
-    def validate_drv_probabilities(func_str: str, range_values: List[float]) -> Tuple[bool, str, float]:
-        """Validate discrete probability mass function"""
+    def validate_drv_probabilities(func_str: str, range_values: List[float], is_infinite: bool = False) -> Tuple[bool, str, float, dict]:
+        """Enhanced validation with detailed convergence analysis"""
         try:
             safe_dict = {
                 'x': 0, 'factorial': np.math.factorial, 'sqrt': np.sqrt,
                 'exp': np.exp, 'log': np.log, 'sin': np.sin, 'cos': np.cos,
                 'tan': np.tan, 'pi': np.pi, 'e': np.e
             }
+
             negative_probs = []
-            total_prob = 0
-            
-            for x_val in range_values:
-                safe_dict['x'] = x_val
-                prob = eval(func_str, {"__builtins__": {}}, safe_dict)
-                if prob < 0:
-                    negative_probs.append(x_val)
-                total_prob += prob
+            analysis = {"terms_computed": 0, "convergence_info": "", "series_type": "finite"}
+
+            if is_infinite:
+                # Use enhanced infinite series handler
+                pattern_type, params = InfiniteSeriesHandler.detect_series_pattern(range_values[:10])
+                total_prob, converges, convergence_msg = InfiniteSeriesHandler.estimate_infinite_sum(
+                    func_str, range_values, pattern_type, params
+                )
+
+                # Check for negative probabilities in sample
+                for x_val in range_values[:20]:
+                    safe_dict['x'] = x_val
+                    prob = eval(func_str, {"__builtins__": {}}, safe_dict)
+                    if prob < 0:
+                        negative_probs.append(x_val)
+
+                analysis.update({
+                    "terms_computed": min(20, len(range_values)),
+                    "convergence_info": convergence_msg,
+                    "series_type": "infinite",
+                    "pattern_type": pattern_type,
+                    "converges": converges
+                })
+
+                tolerance = 0.1 if not converges else 0.05
+
+            else:
+                # Finite case
+                total_prob = 0
+                for x_val in range_values:
+                    safe_dict['x'] = x_val
+                    prob = eval(func_str, {"__builtins__": {}}, safe_dict)
+                    if prob < 0:
+                        negative_probs.append(x_val)
+                    total_prob += prob
+
+                analysis.update({
+                    "terms_computed": len(range_values),
+                    "convergence_info": "Finite sum computed exactly",
+                    "series_type": "finite"
+                })
+
+                tolerance = 1e-10
 
             # Validation results
             if negative_probs:
-                return False, f"Negative probabilities detected at x = {negative_probs[:3]}" + ("..." if len(negative_probs) > 3 else ""), total_prob
-            
-            if abs(total_prob - 1.0) > 1e-10:
-                return False, f"Probabilities sum to {total_prob:.6f}, should be 1.0", total_prob
-            
-            return True, f"Valid probability function (sum = {total_prob:.6f})", total_prob
-            
+                return False, f"Negative probabilities detected at x = {negative_probs[:3]}" + ("..." if len(negative_probs) > 3 else ""), total_prob, analysis
+
+            if abs(total_prob - 1.0) > tolerance:
+                return False, f"Probabilities sum to {total_prob:.6f}, should be 1.0", total_prob, analysis
+
+            return True, f"Valid probability function (sum = {total_prob:.6f})", total_prob, analysis
+
         except Exception as e:
-            return False, f"Error evaluating function: {str(e)}", 0
+            return False, f"Error evaluating function: {str(e)}", 0, analysis
 
     @staticmethod
     def validate_crv_pdf(func_str: str, range_bounds: Tuple[float, float]) -> Tuple[bool, str, float]:
-        """Validate continuous probability density function"""
+        """Enhanced continuous validation"""
         try:
             safe_dict = {
                 'sqrt': np.sqrt, 'exp': np.exp, 'log': np.log,
                 'sin': np.sin, 'cos': np.cos, 'tan': np.tan,
                 'pi': np.pi, 'e': np.e
             }
-            
+
             def pdf_func(x):
                 safe_dict['x'] = x
                 try:
@@ -251,32 +527,45 @@ class EnhancedProbabilityValidator:
                     return 0
 
             lower, upper = range_bounds
-            
-            # Check for negative values at sample points
+
+            # Adaptive sampling for different interval types
             if np.isinf(lower) and np.isinf(upper):
-                test_points = np.linspace(-10, 10, 50)
+                test_points = np.concatenate([
+                    np.linspace(-50, -1, 10),
+                    np.linspace(-1, 1, 20),
+                    np.linspace(1, 50, 10)
+                ])
             elif np.isinf(lower):
-                test_points = np.linspace(upper-10, upper, 25)
+                test_points = np.concatenate([
+                    np.linspace(upper-100, upper-1, 15),
+                    np.linspace(upper-1, upper, 10)
+                ])
             elif np.isinf(upper):
-                test_points = np.linspace(lower, lower+10, 25)
+                test_points = np.concatenate([
+                    np.linspace(lower, lower+1, 10),
+                    np.linspace(lower+1, lower+100, 15)
+                ])
             else:
                 test_points = np.linspace(lower, upper, 50)
 
+            # Check for negative values
+            original_func = lambda x: eval(func_str, {"__builtins__": {}}, {**safe_dict, 'x': x})
             for point in test_points:
                 try:
-                    val = eval(func_str, {"__builtins__": {}}, {**safe_dict, 'x': point})
-                    if val < -1e-10:
+                    val = original_func(point)
+                    if val < -1e-10:  # Allow for small numerical errors
                         return False, f"Negative PDF value {val:.6f} at x = {point:.3f}", 0
                 except:
                     continue
 
-            # Numerical integration
+            # Enhanced numerical integration
             try:
                 integral_result, error = integrate.quad(
                     pdf_func, lower, upper,
                     limit=200, epsabs=1e-10, epsrel=1e-10
                 )
             except:
+                # Fallback integration
                 integral_result, error = integrate.quad(pdf_func, lower, upper, limit=50)
 
             if abs(integral_result - 1.0) > 1e-3:
@@ -289,31 +578,94 @@ class EnhancedProbabilityValidator:
 
 class EnhancedMomentCalculator:
     @staticmethod
-    def calculate_drv_moment(func_str: str, range_values: List[float], r: int, a: float) -> float:
-        """Calculate r-th moment for discrete random variable"""
+    def calculate_drv_moment_infinite(func_str: str, range_values: List[float], r: int, a: float) -> Tuple[float, dict]:
+        """Calculate moments for infinite DRV with convergence analysis"""
         safe_dict = {
             'factorial': np.math.factorial, 'sqrt': np.sqrt,
             'exp': np.exp, 'log': np.log, 'sin': np.sin,
             'cos': np.cos, 'tan': np.tan, 'pi': np.pi, 'e': np.e
         }
+
         moment = 0
-        
+        terms = []
+        analysis = {"converged": False, "terms_used": 0, "convergence_info": ""}
+
+        # Calculate terms and monitor convergence
+        for i, x_val in enumerate(range_values[:100]):  # Max 100 terms
+            safe_dict['x'] = x_val
+            prob = eval(func_str, {"__builtins__": {}}, safe_dict)
+            term = ((x_val - a) ** r) * prob
+            terms.append(term)
+            moment += term
+
+            # Check convergence every 10 terms after the first 20
+            if i >= 20 and i % 5 == 0:
+                recent_terms = terms[-5:]
+                if all(abs(t) < 1e-12 for t in recent_terms):
+                    analysis.update({
+                        "converged": True,
+                        "terms_used": i + 1,
+                        "convergence_info": f"Converged after {i+1} terms (terms → 0)"
+                    })
+                    break
+
+                # Check if partial sums are stabilizing
+                if len(terms) >= 30:
+                    recent_sums = [sum(terms[:j]) for j in range(len(terms)-10, len(terms))]
+                    sum_diffs = [abs(recent_sums[i+1] - recent_sums[i]) for i in range(len(recent_sums)-1)]
+                    if all(d < 1e-10 for d in sum_diffs):
+                        analysis.update({
+                            "converged": True,
+                            "terms_used": i + 1,
+                            "convergence_info": f"Converged after {i+1} terms (partial sums stabilized)"
+                        })
+                        break
+
+        if not analysis["converged"]:
+            analysis.update({
+                "converged": False,
+                "terms_used": len(terms),
+                "convergence_info": f"Used {len(terms)} terms, convergence uncertain"
+            })
+
+        return moment, analysis
+
+    @staticmethod
+    def calculate_drv_moment(func_str: str, range_values: List[float], r: int, a: float, is_infinite: bool = False) -> Tuple[float, dict]:
+        """Calculate r-th moment for DRV with detailed analysis"""
+        if is_infinite:
+            return EnhancedMomentCalculator.calculate_drv_moment_infinite(func_str, range_values, r, a)
+
+        # Finite case
+        safe_dict = {
+            'factorial': np.math.factorial, 'sqrt': np.sqrt,
+            'exp': np.exp, 'log': np.log, 'sin': np.sin,
+            'cos': np.cos, 'tan': np.tan, 'pi': np.pi, 'e': np.e
+        }
+
+        moment = 0
         for x_val in range_values:
             safe_dict['x'] = x_val
             prob = eval(func_str, {"__builtins__": {}}, safe_dict)
             moment += ((x_val - a) ** r) * prob
-            
-        return moment
+
+        analysis = {
+            "converged": True,
+            "terms_used": len(range_values),
+            "convergence_info": f"Exact calculation with {len(range_values)} terms"
+        }
+
+        return moment, analysis
 
     @staticmethod
     def calculate_crv_moment(func_str: str, range_bounds: Tuple[float, float], r: int, a: float) -> float:
-        """Calculate r-th moment for continuous random variable"""
+        """Calculate r-th moment for CRV with enhanced integration"""
         safe_dict = {
             'sqrt': np.sqrt, 'exp': np.exp, 'log': np.log,
             'sin': np.sin, 'cos': np.cos, 'tan': np.tan,
             'pi': np.pi, 'e': np.e
         }
-        
+
         def integrand(x):
             safe_dict['x'] = x
             try:
@@ -329,21 +681,47 @@ class EnhancedMomentCalculator:
             )
             return moment
         except:
+            # Fallback integration
             moment, _ = integrate.quad(integrand, range_bounds[0], range_bounds[1], limit=50)
             return moment
 
-def parse_range_input(range_input: str) -> List[float]:
-    """Parse discrete range input"""
+def parse_range_input(range_input: str) -> Tuple[List[float], bool, str]:
+    """Enhanced range parsing with pattern detection"""
     range_input = range_input.strip()
+    is_infinite = False
+    pattern_info = ""
+
+    if range_input.endswith("...") or range_input.endswith("…"):
+        is_infinite = True
+        base_values_str = range_input.replace("...", "").replace("…", "").strip()
+        base_values = [float(x.strip()) for x in base_values_str.split(',') if x.strip()]
+
+        # Detect pattern
+        pattern_type, params = InfiniteSeriesHandler.detect_series_pattern(base_values)
+
+        if pattern_type == "arithmetic":
+            pattern_info = f"Arithmetic sequence: start={params['start']}, step={params['diff']}"
+            extended_values = InfiniteSeriesHandler.generate_extended_series(pattern_type, params, 100)
+        elif pattern_type == "geometric":
+            pattern_info = f"Geometric sequence: start={params['start']}, ratio={params['ratio']}"
+            extended_values = InfiniteSeriesHandler.generate_extended_series(pattern_type, params, 100)
+        else:
+            pattern_info = "Custom pattern detected"
+            extended_values = InfiniteSeriesHandler.generate_extended_series(pattern_type, params, 100)
+
+        return extended_values, is_infinite, pattern_info
+
+    # Regular finite range
     values = [float(x.strip()) for x in range_input.split(',')]
-    return sorted(values)
+    pattern_info = f"Finite sequence with {len(values)} values"
+    return sorted(values), is_infinite, pattern_info
 
 def parse_continuous_bound(bound_str: str) -> float:
-    """Parse continuous bound"""
+    """Parse continuous bound with enhanced infinity handling"""
     bound_str = bound_str.strip().lower()
     infinity_variants = ['inf', 'infinity', '∞', '+inf', '+infinity', '+∞']
     neg_infinity_variants = ['-inf', '-infinity', '-∞']
-    
+
     if bound_str in infinity_variants:
         return np.inf
     elif bound_str in neg_infinity_variants:
@@ -351,24 +729,26 @@ def parse_continuous_bound(bound_str: str) -> float:
     else:
         return float(bound_str)
 
-def create_visualization(var_type: str, func_str: str, range_data):
-    """Create visualizations for the probability functions"""
+def create_visualization(var_type: str, func_str: str, range_data, is_infinite: bool = False):
+    """Create beautiful visualizations for the probability functions"""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Set style
     plt.style.use('seaborn-v0_8-whitegrid')
-    colors = ['#4361ee', '#3a0ca3']
-    
+    colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c']
+
     safe_dict = {
         'x': 0, 'factorial': np.math.factorial, 'sqrt': np.sqrt,
         'exp': np.exp, 'log': np.log, 'sin': np.sin, 'cos': np.cos,
         'tan': np.tan, 'pi': np.pi, 'e': np.e
     }
-    
+
     try:
         if var_type == "Discrete (DRV)":
             range_values = range_data
-            x_vals = range_values
+            x_vals = range_values[:30] if is_infinite else range_values
             y_vals = []
-            
+
             for x_val in x_vals:
                 safe_dict['x'] = x_val
                 try:
@@ -376,30 +756,39 @@ def create_visualization(var_type: str, func_str: str, range_data):
                     y_vals.append(max(0, prob))
                 except:
                     y_vals.append(0)
-            
+
             # PMF plot
-            ax1.bar(x_vals, y_vals, alpha=0.8, color=colors[0], edgecolor='white', linewidth=1.2)
-            ax1.set_title('Probability Mass Function (PMF)', fontsize=13, fontweight='bold')
-            ax1.set_xlabel('x', fontsize=11)
-            ax1.set_ylabel('P(X = x)', fontsize=11)
+            ax1.bar(x_vals, y_vals, alpha=0.7, color=colors[0], edgecolor='white', linewidth=1.5)
+            ax1.set_title('Probability Mass Function', fontsize=14, fontweight='bold', color='#2d3436')
+            ax1.set_xlabel('x', fontsize=12)
+            ax1.set_ylabel('P(X = x)', fontsize=12)
             ax1.grid(True, alpha=0.3)
-            
+
             # CDF plot
             cdf_vals = np.cumsum(y_vals)
             ax2.step(x_vals, cdf_vals, where='post', color=colors[1], linewidth=2.5)
-            ax2.fill_between(x_vals, cdf_vals, alpha=0.2, color=colors[1], step='post')
-            ax2.set_title('Cumulative Distribution Function (CDF)', fontsize=13, fontweight='bold')
-            ax2.set_xlabel('x', fontsize=11)
-            ax2.set_ylabel('F(x)', fontsize=11)
+            ax2.fill_between(x_vals, cdf_vals, alpha=0.3, color=colors[1], step='post')
+            ax2.set_title('Cumulative Distribution Function', fontsize=14, fontweight='bold', color='#2d3436')
+            ax2.set_xlabel('x', fontsize=12)
+            ax2.set_ylabel('F(x)', fontsize=12)
             ax2.grid(True, alpha=0.3)
-            
+
+            if is_infinite:
+                ax1.text(0.98, 0.95, f'Showing first {len(x_vals)} terms',
+                        transform=ax1.transAxes, ha='right', va='top',
+                        bbox=dict(boxstyle='round,pad=0.3', facecolor='yellow', alpha=0.7),
+                        fontsize=10)
+
         else:  # Continuous
             lower, upper = range_data
+
+            # Handle infinite bounds for plotting
             plot_lower = max(lower, -10) if np.isinf(lower) else lower
             plot_upper = min(upper, 10) if np.isinf(upper) else upper
+
             x_vals = np.linspace(plot_lower, plot_upper, 500)
             y_vals = []
-            
+
             for x_val in x_vals:
                 safe_dict['x'] = x_val
                 try:
@@ -407,37 +796,37 @@ def create_visualization(var_type: str, func_str: str, range_data):
                     y_vals.append(max(0, pdf_val))
                 except:
                     y_vals.append(0)
-            
+
             y_vals = np.array(y_vals)
-            
+
             # PDF plot
             ax1.plot(x_vals, y_vals, color=colors[0], linewidth=3, alpha=0.8)
-            ax1.fill_between(x_vals, y_vals, alpha=0.2, color=colors[0])
-            ax1.set_title('Probability Density Function (PDF)', fontsize=13, fontweight='bold')
-            ax1.set_xlabel('x', fontsize=11)
-            ax1.set_ylabel('f(x)', fontsize=11)
+            ax1.fill_between(x_vals, y_vals, alpha=0.3, color=colors[0])
+            ax1.set_title('Probability Density Function', fontsize=14, fontweight='bold', color='#2d3436')
+            ax1.set_xlabel('x', fontsize=12)
+            ax1.set_ylabel('f(x)', fontsize=12)
             ax1.grid(True, alpha=0.3)
-            
+
             # CDF plot (approximate)
             dx = x_vals[1] - x_vals[0]
             cdf_vals = np.cumsum(y_vals) * dx
             ax2.plot(x_vals, cdf_vals, color=colors[1], linewidth=3, alpha=0.8)
-            ax2.fill_between(x_vals, cdf_vals, alpha=0.2, color=colors[1])
-            ax2.set_title('Cumulative Distribution Function (CDF)', fontsize=13, fontweight='bold')
-            ax2.set_xlabel('x', fontsize=11)
-            ax2.set_ylabel('F(x)', fontsize=11)
+            ax2.fill_between(x_vals, cdf_vals, alpha=0.3, color=colors[1])
+            ax2.set_title('Cumulative Distribution Function', fontsize=14, fontweight='bold', color='#2d3436')
+            ax2.set_xlabel('x', fontsize=12)
+            ax2.set_ylabel('F(x)', fontsize=12)
             ax2.grid(True, alpha=0.3)
-            
+
             if np.isinf(lower) or np.isinf(upper):
                 bound_desc = f"[{'-∞' if np.isinf(lower) else lower:.1f}, {'∞' if np.isinf(upper) else upper:.1f}]"
                 ax1.text(0.02, 0.95, f'Domain: {bound_desc}',
                         transform=ax1.transAxes, ha='left', va='top',
                         bbox=dict(boxstyle='round,pad=0.3', facecolor='lightblue', alpha=0.7),
-                        fontsize=9)
-        
+                        fontsize=10)
+
         plt.tight_layout()
         return fig
-        
+
     except Exception as e:
         # Fallback: create empty plots with error message
         ax1.text(0.5, 0.5, f'Visualization Error:\n{str(e)}',
@@ -449,243 +838,343 @@ def create_visualization(var_type: str, func_str: str, range_data):
         plt.tight_layout()
         return fig
 
-# Sidebar Configuration
+# Sidebar with enhanced UI
 with st.sidebar:
-    st.markdown('<div class="section-header">⚙️ Configuration</div>', unsafe_allow_html=True)
-    
-    # Step 1: Variable type
+    st.markdown('<div class="section-header">🎯 Configuration</div>', unsafe_allow_html=True)
+
+    # Progress indicator
+    st.markdown("""
+    <div class="progress-container">
+        <div class="progress-bar" style="width: 25%"></div>
+    </div>
+    <small style="color: #666;">Step 1 of 4: Variable Type</small>
+    """, unsafe_allow_html=True)
+
+    # Step 1: Variable type with enhanced descriptions
     var_type = st.selectbox(
         "Choose Variable Type",
         ["Discrete (DRV)", "Continuous (CRV)"],
-        help="🎲 Discrete: Countable values (coins, dice, counts)\n📊 Continuous: Any value in an interval (height, weight, time)"
+        help="🎲 Discrete: Countable values (coins, dice)\n📊 Continuous: Any value in an interval (height, weight)"
     )
-    
+
     st.markdown("---")
-    
-    # Step 2: Range input
-    st.markdown('<div class="section-header">📊 Define Range</div>', unsafe_allow_html=True)
-    
+
+    # Step 2: Range input with better guidance
+    st.markdown('<div class="section-header">📊 Range Definition</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="progress-container">
+        <div class="progress-bar" style="width: 50%"></div>
+    </div>
+    <small style="color: #666;">Step 2 of 4: Define Range</small>
+    """, unsafe_allow_html=True)
+
     if var_type == "Discrete (DRV)":
         st.markdown("""
         <div class="info-box">
-            <strong>Discrete Range Examples:</strong><br>
-            • <code>0,1,2,3,4,5</code><br>
-            • <code>1,2,3,4,5,6</code> (for a die)<br>
-            • <code>0,1,2,3,4</code> (for binomial n=4)
+            <strong>🔢 Discrete Range Examples:</strong><br>
+            • Finite: <code>1,2,3,4,5</code><br>
+            • Infinite arithmetic: <code>0,1,2,3,...</code><br>
+            • Infinite geometric: <code>1,2,4,8,...</code><br>
+            • Custom pattern: <code>1,4,9,16,...</code>
         </div>
         """, unsafe_allow_html=True)
+
         range_input = st.text_input(
             "Range Values (comma-separated)",
-            value="0,1,2,3,4,5",
-            help="Enter discrete values separated by commas",
+            value="0,1,2,3,...",
+            help="📝 Enter discrete values. End with '...' for infinite sequences",
             key="range_discrete"
         )
     else:
         st.markdown("""
         <div class="info-box">
-            <strong>Continuous Range Examples:</strong><br>
+            <strong>📊 Continuous Range Examples:</strong><br>
             • Finite: <code>[0, 1]</code><br>
             • Semi-infinite: <code>[0, inf]</code><br>
             • Infinite: <code>[-inf, inf]</code><br>
             Use 'inf' or '∞' for infinity
         </div>
         """, unsafe_allow_html=True)
+
         col1, col2 = st.columns(2)
         with col1:
             lower_bound_str = st.text_input(
                 "Lower Bound",
                 value="0",
-                help="Use '-inf' for -∞",
+                help="📉 Use '-inf' for -∞",
                 key="lower_bound"
             )
         with col2:
             upper_bound_str = st.text_input(
                 "Upper Bound",
                 value="1",
-                help="Use 'inf' for ∞",
+                help="📈 Use 'inf' for ∞",
                 key="upper_bound"
             )
-    
+
     st.markdown("---")
-    
-    # Step 3: Probability function
+
+    # Step 3: Probability function with examples
     st.markdown('<div class="section-header">⚡ Probability Function</div>', unsafe_allow_html=True)
-    
+    st.markdown("""
+    <div class="progress-container">
+        <div class="progress-bar" style="width: 75%"></div>
+    </div>
+    <small style="color: #666;">Step 3 of 4: Define Function</small>
+    """, unsafe_allow_html=True)
+
     # Function examples dropdown
     if var_type == "Discrete (DRV)":
         example_functions = {
-            "Custom": "",
-            "Uniform (6-sided die)": "1/6 if 1 <= x <= 6 else 0",
-            "Binomial (n=5, p=0.3)": "(factorial(5)/(factorial(x)*factorial(5-x))) * (0.3**x) * (0.7**(5-x)) if 0 <= x <= 5 else 0",
-            "Custom Finite": "0.2 if 0 <= x <= 4 else 0"
+            "Geometric Distribution": "0.5 * (0.5 ** x) if x >= 0 else 0",
+            "Poisson-like": "(2**x * exp(-2)) / factorial(x) if x >= 0 else 0",
+            "Custom Finite": "0.25 if 0 <= x <= 3 else 0",
+            "Negative Binomial": "(factorial(x+1)/(factorial(1)*factorial(x))) * (0.5**2) * (0.5**x) if x >= 0 else 0"
         }
     else:
         example_functions = {
-            "Custom": "",
-            "Uniform [0,1]": "1 if 0 <= x <= 1 else 0",
-            "Exponential (λ=2)": "2*exp(-2*x) if x >= 0 else 0",
-            "Beta (α=2, β=3)": "12*x*(1-x)**2 if 0 <= x <= 1 else 0",
-            "Standard Normal": "exp(-x**2/2) / sqrt(2*pi)"
+            "Exponential Distribution": "2*exp(-2*x) if x >= 0 else 0",
+            "Beta Distribution": "6*x*(1-x) if 0 <= x <= 1 else 0",
+            "Normal-like": "exp(-(x**2)/2) / sqrt(2*pi)",
+            "Uniform Distribution": "1 if 0 <= x <= 1 else 0"
         }
-    
+
     selected_example = st.selectbox(
-        "Choose Example or Custom",
-        list(example_functions.keys()),
+        "📚 Choose Example or Custom",
+        ["Custom"] + list(example_functions.keys()),
         key="example_selector"
     )
-    
-    default_func = example_functions[selected_example]
-    
+
+    default_func = example_functions.get(selected_example,
+        "0.5 * (0.5 ** x) if x >= 0 else 0" if var_type == "Discrete (DRV)" else "exp(-x) if x >= 0 else 0")
+
     if var_type == "Discrete (DRV)":
         prob_func = st.text_area(
             "Probability Mass Function P(X=x)",
-            value=default_func if default_func else "1/6 if 1 <= x <= 6 else 0",
-            help="Available: factorial, sqrt, exp, log, sin, cos, tan, pi, e",
+            value=default_func if selected_example != "Custom" else "0.5 * (0.5 ** x) if x >= 0 else 0",
+            help="🧮 Available: factorial, sqrt, exp, log, sin, cos, tan, pi, e",
             height=100,
             key="prob_func_discrete"
         )
     else:
         prob_func = st.text_area(
             "Probability Density Function f(x)",
-            value=default_func if default_func else "1 if 0 <= x <= 1 else 0",
-            help="Available: sqrt, exp, log, sin, cos, tan, pi, e",
+            value=default_func if selected_example != "Custom" else "exp(-x) if x >= 0 else 0",
+            help="🧮 Available: sqrt, exp, log, sin, cos, tan, pi, e",
             height=100,
             key="prob_func_continuous"
         )
-    
+
     st.markdown("---")
-    
+
     # Step 4: Moment calculation options
-    st.markdown('<div class="section-header">🎯 Moment Settings</div>', unsafe_allow_html=True)
-    
+    st.markdown('<div class="section-header">🎯 Moment Configuration</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="progress-container">
+        <div class="progress-bar" style="width: 100%"></div>
+    </div>
+    <small style="color: #666;">Step 4 of 4: Moment Settings</small>
+    """, unsafe_allow_html=True)
+
     moment_about = st.selectbox(
         "Calculate moments about:",
         ["About the origin (a = 0)", "About the mean (a = μ)", "About custom value"],
         help="🎯 Origin: Raw moments\n📊 Mean: Central moments\n⚙️ Custom: Moments about any point"
     )
-    
+
     if moment_about == "About custom value":
         custom_a = st.number_input(
             "Custom reference point (a)",
             value=0.0,
             step=0.1,
-            help="Point around which to calculate moments"
+            help="📍 Point around which to calculate moments"
         )
-    
-    # Add moment order input
-    max_moment_order = st.number_input(
-        "Maximum Moment Order (r)",
-        min_value=1,
-        max_value=20,
-        value=4,
-        step=1,
-        help="Calculate moments from 1st up to this order (e.g., 5 for 1st to 5th moment)",
-        key="max_moment_order"
-    )
-    
+
     # Advanced options
-    with st.expander("🖼️ Visualization Options", expanded=True):
+    with st.expander("⚙️ Advanced Options", expanded=False):
+        show_convergence = st.checkbox(
+            "Show convergence analysis",
+            value=True,
+            help="📈 Display detailed convergence information for infinite series"
+        )
         show_visualization = st.checkbox(
             "Show probability plots",
             value=True,
-            help="Generate PDF/PMF and CDF visualizations"
+            help="📊 Generate PDF/PMF and CDF visualizations"
+        )
+        max_terms = st.slider(
+            "Max terms for infinite series",
+            min_value=20,
+            max_value=200,
+            value=100,
+            help="🔄 Maximum number of terms to compute for infinite series"
         )
 
-# Main content area
+# Main content area with enhanced layout
 col1, col2 = st.columns([3, 2])
 
 with col1:
     st.markdown('<div class="section-header">🎲 Analysis Results</div>', unsafe_allow_html=True)
-    
+
     # Process inputs and validate
     try:
-        # Parse range
+        # Parse range with enhanced pattern detection
         if var_type == "Discrete (DRV)":
-            range_values = parse_range_input(range_input)
-            # Validation
-            is_valid, message, prob_sum = EnhancedProbabilityValidator.validate_drv_probabilities(prob_func, range_values)
+            range_values, is_infinite, pattern_info = parse_range_input(range_input)
+
+            if is_infinite:
+                st.markdown(f"""
+                <div class="info-box">
+                    <strong>🔄 Infinite Series Detected:</strong><br>
+                    {pattern_info}<br>
+                    Computing with first {min(len(range_values), max_terms)} terms
+                </div>
+                """, unsafe_allow_html=True)
+
+                # Limit to max_terms
+                range_values = range_values[:max_terms]
+
+            # Enhanced validation
+            is_valid, message, prob_sum, analysis = EnhancedProbabilityValidator.validate_drv_probabilities(
+                prob_func, range_values, is_infinite
+            )
+
         else:
-            lower_bound = parse_continuous_bound(lower_bound_str)
-            upper_bound = parse_continuous_bound(upper_bound_str)
-            
+            try:
+                lower_bound = parse_continuous_bound(lower_bound_str)
+                upper_bound = parse_continuous_bound(upper_bound_str)
+            except ValueError as e:
+                raise ValueError(f"Invalid bound format: {str(e)}")
+
             if not np.isinf(lower_bound) and not np.isinf(upper_bound) and lower_bound >= upper_bound:
                 raise ValueError("Lower bound must be less than upper bound")
-                
+
             range_bounds = (lower_bound, upper_bound)
-            
+
+            if np.isinf(lower_bound) or np.isinf(upper_bound):
+                bound_desc = f"({lower_bound_str}, {upper_bound_str})"
+                st.markdown(f"""
+                <div class="info-box">
+                    <strong>♾️ Infinite Interval:</strong> Integration over {bound_desc}
+                </div>
+                """, unsafe_allow_html=True)
+
             # Validate PDF
             is_valid, message, integral_val = EnhancedProbabilityValidator.validate_crv_pdf(prob_func, range_bounds)
-        
-        # Display validation results
+
+        # Display validation results with enhanced styling
         if is_valid:
             st.markdown(f"""
             <div class="success-box">
                 <strong>✅ Validation Successful:</strong> {message}
             </div>
             """, unsafe_allow_html=True)
-            
+
+            # Show detailed analysis for infinite series
+            if var_type == "Discrete (DRV)" and is_infinite and show_convergence:
+                st.markdown(f"""
+                <div class="info-box">
+                    <strong>📊 Series Analysis:</strong><br>
+                    • {analysis['convergence_info']}<br>
+                    • Terms computed: {analysis['terms_computed']}<br>
+                    • Series type: {analysis['series_type']}<br>
+                    {f"• Pattern: {analysis.get('pattern_type', 'N/A')}" if 'pattern_type' in analysis else ""}
+                </div>
+                """, unsafe_allow_html=True)
+
             # Calculate reference point for moments
             if moment_about == "About the mean (a = μ)":
                 with st.spinner("🧮 Computing mean..."):
                     if var_type == "Discrete (DRV)":
-                        mean_val = EnhancedMomentCalculator.calculate_drv_moment(prob_func, range_values, 1, 0)
+                        if is_infinite:
+                            mean_val, mean_analysis = EnhancedMomentCalculator.calculate_drv_moment_infinite(
+                                prob_func, range_values, 1, 0
+                            )
+                        else:
+                            mean_val, mean_analysis = EnhancedMomentCalculator.calculate_drv_moment(
+                                prob_func, range_values, 1, 0, is_infinite
+                            )
                     else:
                         mean_val = EnhancedMomentCalculator.calculate_crv_moment(prob_func, range_bounds, 1, 0)
+
                 a_value = mean_val
                 st.markdown(f"""
                 <div class="metric-container">
                     <div class="metric-label">Computed Mean (μ)</div>
-                    <div class="metric-value">{mean_val:.6f}</div>
+                    <div class="metric-value">{mean_val:.8f}</div>
                 </div>
                 """, unsafe_allow_html=True)
+
             elif moment_about == "About the origin (a = 0)":
                 a_value = 0.0
             else:
                 a_value = custom_a
-            
-            # Create list of moment orders
-            moment_orders = list(range(1, int(max_moment_order) + 1))
-            total_moments = len(moment_orders)
-            
+
             # Calculate multiple moments with progress indication
             st.markdown("#### 🧮 Computing Moments...")
+
             progress_bar = st.progress(0)
             moments = {}
-            
-            for i, r in enumerate(moment_orders):
-                progress_bar.progress((i + 1) / total_moments)
+            moment_analyses = {}
+
+            for i, r in enumerate(range(1, 5)):
+                progress_bar.progress((i + 1) / 4)
+
                 with st.spinner(f"Computing {r}-th moment..."):
                     if var_type == "Discrete (DRV)":
-                        moment_val = EnhancedMomentCalculator.calculate_drv_moment(prob_func, range_values, r, a_value)
+                        moment_val, moment_analysis = EnhancedMomentCalculator.calculate_drv_moment(
+                            prob_func, range_values, r, a_value, is_infinite
+                        )
+                        moment_analyses[r] = moment_analysis
                     else:
-                        moment_val = EnhancedMomentCalculator.calculate_crv_moment(prob_func, range_bounds, r, a_value)
+                        moment_val = EnhancedMomentCalculator.calculate_crv_moment(
+                            prob_func, range_bounds, r, a_value
+                        )
+
                 moments[r] = moment_val
-            
+
             progress_bar.empty()
-            
-            # Display moments
+
+            # Display moments with enhanced styling
             st.markdown("#### 📈 Calculated Moments")
-            
-            # Create rows of 4 metrics each
-            for i in range(0, len(moment_orders), 4):
-                cols = st.columns(min(4, len(moment_orders) - i))
-                for j in range(len(cols)):
-                    r = moment_orders[i + j]
-                    moment_val = moments[r]
-                    with cols[j]:
-                        st.markdown(f"""
-                        <div class="metric-container">
-                            <div class="metric-label">μ<sub>{r}</sub>({a_value:.2f})</div>
-                            <div class="metric-value">{moment_val:.6f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-            
-            # Statistical measures for central moments (only if we have enough moments)
-            if moment_about == "About the mean (a = μ)" and len(moments) >= 4 and all(r in moments for r in [2, 3, 4]):
+
+            cols = st.columns(4)
+            for i, (r, moment_val) in enumerate(moments.items()):
+                with cols[i]:
+                    # Color coding based on moment order
+                    colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c']
+                    st.markdown(f"""
+                    <div class="metric-container" style="background: linear-gradient(135deg, {colors[i]} 0%, {colors[(i+1)%4]} 100%);">
+                        <div class="metric-label">μ_{r}({a_value:.2f})</div>
+                        <div class="metric-value">{moment_val:.6f}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            # Show convergence details for infinite DRV
+            if var_type == "Discrete (DRV)" and is_infinite and show_convergence:
+                st.markdown("#### 🔍 Convergence Analysis")
+
+                convergence_df = pd.DataFrame([
+                    {
+                        'Moment Order': r,
+                        'Value': f"{moments[r]:.8f}",
+                        'Converged': '✅' if moment_analyses[r]['converged'] else '⚠️',
+                        'Terms Used': moment_analyses[r]['terms_used'],
+                        'Info': moment_analyses[r]['convergence_info']
+                    }
+                    for r in range(1, 5)
+                ])
+
+                st.dataframe(convergence_df, use_container_width=True)
+
+            # Statistical measures for central moments
+            if moment_about == "About the mean (a = μ)" and len(moments) >= 4:
                 st.markdown("#### 📊 Statistical Measures")
+
                 variance = moments[2]
                 std_dev = np.sqrt(abs(variance))
-                
+
+                # Handle potential division by zero or negative variance
                 if std_dev > 1e-10:
                     skewness = moments[3] / (std_dev ** 3)
                     kurtosis = moments[4] / (std_dev ** 4)
@@ -694,36 +1183,37 @@ with col1:
                     skewness = np.nan
                     kurtosis = np.nan
                     excess_kurtosis = np.nan
-                
-                # Create metric cards for statistical measures
-                stat_cols = st.columns(5)
+
+                # Create beautiful metric cards
+                metric_cols = st.columns(5)
                 statistical_measures = [
-                    ("Mean (μ)", a_value, "#4361ee"),
-                    ("Variance (σ²)", variance, "#3a0ca3"),
-                    ("Std Dev (σ)", std_dev, "#4cc9f0"),
-                    ("Skewness", skewness, "#f72585"),
-                    ("Excess Kurtosis", excess_kurtosis, "#7209b7")
+                    ("Mean (μ)", a_value, "#667eea"),
+                    ("Variance (σ²)", variance, "#764ba2"),
+                    ("Std Dev (σ)", std_dev, "#f093fb"),
+                    ("Skewness", skewness, "#f5576c"),
+                    ("Excess Kurtosis", excess_kurtosis, "#ff6b6b")
                 ]
-                
+
                 for i, (label, value, color) in enumerate(statistical_measures):
-                    with stat_cols[i]:
+                    with metric_cols[i]:
                         if not np.isnan(value):
                             st.markdown(f"""
-                            <div class="metric-container" style="border-color: {color};">
+                            <div class="metric-container" style="background: {color};">
                                 <div class="metric-label">{label}</div>
                                 <div class="metric-value">{value:.6f}</div>
                             </div>
                             """, unsafe_allow_html=True)
                         else:
                             st.markdown(f"""
-                            <div class="metric-container" style="border-color: #94a3b8;">
+                            <div class="metric-container" style="background: #95a5a6;">
                                 <div class="metric-label">{label}</div>
                                 <div class="metric-value">N/A</div>
                             </div>
                             """, unsafe_allow_html=True)
-            
+
             # Detailed results table
             st.markdown("#### 📋 Detailed Results Table")
+
             results_data = []
             for r, moment_val in moments.items():
                 row = {
@@ -732,18 +1222,25 @@ with col1:
                     'About Point (a)': f"{a_value:.6f}",
                     'Interpretation': f"E[(X-{a_value:.2f})^{r}]"
                 }
+
+                if var_type == "Discrete (DRV)" and is_infinite:
+                    row.update({
+                        'Convergence': '✅' if moment_analyses[r]['converged'] else '⚠️',
+                        'Terms Used': moment_analyses[r]['terms_used']
+                    })
+
                 results_data.append(row)
-            
+
             results_df = pd.DataFrame(results_data)
             st.dataframe(results_df, use_container_width=True)
-            
+
         else:
             st.markdown(f"""
             <div class="error-box">
                 <strong>❌ Validation Failed:</strong> {message}
             </div>
             """, unsafe_allow_html=True)
-            
+
             # Provide helpful debugging information
             if var_type == "Discrete (DRV)":
                 st.markdown(f"""
@@ -751,9 +1248,19 @@ with col1:
                     <strong>🔧 Debug Information:</strong><br>
                     Current probability sum: <code>{prob_sum:.8f}</code><br>
                     Expected sum: <code>1.0</code><br>
-                    Difference: <code>{abs(prob_sum - 1.0):.8f}</code>
+                    Difference: <code>{abs(prob_sum - 1.0):.8f}</code><br>
+                    Terms computed: <code>{analysis.get('terms_computed', 'N/A')}</code>
                 </div>
                 """, unsafe_allow_html=True)
+
+                # Show convergence issues for infinite series
+                if is_infinite:
+                    st.markdown(f"""
+                    <div class="info-box">
+                        <strong>♾️ Infinite Series Notes:</strong><br>
+                        {analysis.get('convergence_info', 'No convergence info available')}
+                    </div>
+                    """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="warning-box">
@@ -763,7 +1270,7 @@ with col1:
                     Integration bounds: <code>[{lower_bound_str}, {upper_bound_str}]</code>
                 </div>
                 """, unsafe_allow_html=True)
-                
+
     except Exception as e:
         st.markdown(f"""
         <div class="error-box">
@@ -778,17 +1285,19 @@ with col1:
 
 with col2:
     st.markdown('<div class="section-header">📊 Visualizations & Help</div>', unsafe_allow_html=True)
-    
+
     # Show visualizations if validation passed and option is enabled
     if 'is_valid' in locals() and is_valid and show_visualization:
         try:
             with st.spinner("🎨 Creating visualizations..."):
                 if var_type == "Discrete (DRV)":
-                    fig = create_visualization(var_type, prob_func, range_values)
+                    fig = create_visualization(var_type, prob_func, range_values, is_infinite)
                 else:
-                    fig = create_visualization(var_type, prob_func, range_bounds)
+                    fig = create_visualization(var_type, prob_func, range_bounds, False)
+
                 st.pyplot(fig, use_container_width=True)
                 plt.close(fig)  # Clean up memory
+
         except Exception as e:
             st.markdown(f"""
             <div class="warning-box">
@@ -797,95 +1306,178 @@ with col2:
                 <small>Visualization is optional and doesn't affect calculations</small>
             </div>
             """, unsafe_allow_html=True)
-    
-    # Help sections
+
+    # Enhanced help sections
     with st.expander("🎲 Discrete Examples", expanded=False):
         st.markdown("""
-        **Discrete Probability Examples:**
+        **🔢 Finite Discrete:**
         ```python
-        # Uniform (fair 6-sided die)
-        Range: 1,2,3,4,5,6
-        PMF: 1/6 if 1 <= x <= 6 else 0
+        Range: 1,2,3,4,5
+        PMF: 0.2 if 1 <= x <= 5 else 0
         ```
+
+        **♾️ Geometric Distribution:**
         ```python
-        # Binomial (n=5, p=0.3)
-        Range: 0,1,2,3,4,5
-        PMF: (factorial(5)/(factorial(x)*factorial(5-x))) * (0.3**x) * (0.7**(5-x)) if 0 <= x <= 5 else 0
+        Range: 0,1,2,3,...
+        PMF: 0.3 * (0.7 ** x) if x >= 0 else 0
         ```
+
+        **🎯 Poisson Distribution:**
         ```python
-        # Custom distribution
-        Range: 0,1,2,3,4
-        PMF: 0.2 if 0 <= x <= 4 else 0
+        Range: 0,1,2,3,...
+        PMF: (exp(-3) * 3**x) / factorial(x) if x >= 0 else 0
+        ```
+
+        **🎪 Negative Binomial:**
+        ```python
+        Range: 0,1,2,3,...
+        PMF: (factorial(x+r-1)/(factorial(r-1)*factorial(x))) * (p**r) * ((1-p)**x)
         ```
         """)
-    
+
     with st.expander("📊 Continuous Examples", expanded=False):
         st.markdown("""
-        **Continuous Probability Examples:**
+        **📏 Uniform Distribution:**
         ```python
-        # Uniform distribution [0,1]
         Range: [0, 1]
         PDF: 1 if 0 <= x <= 1 else 0
         ```
+
+        **⚡ Exponential Distribution:**
         ```python
-        # Exponential distribution (λ=2)
         Range: [0, inf]
         PDF: 2*exp(-2*x) if x >= 0 else 0
         ```
+
+        **🔔 Normal Distribution:**
         ```python
-        # Standard Normal distribution
         Range: [-inf, inf]
-        PDF: exp(-x**2/2) / sqrt(2*pi)
+        PDF: exp(-(x**2)/2) / sqrt(2*pi)
         ```
+
+        **🎨 Beta Distribution:**
         ```python
-        # Beta distribution (α=2, β=3)
         Range: [0, 1]
-        PDF: 12*x*(1-x)**2 if 0 <= x <= 1 else 0
+        PDF: 6*x*(1-x) if 0 <= x <= 1 else 0
         ```
         """)
-    
+
+    with st.expander("♾️ Infinity Guide", expanded=False):
+        st.markdown("""
+        **🔄 Discrete Infinite Patterns:**
+
+        *Arithmetic Sequences:*
+        - `0,1,2,3,...` → 0, 1, 2, 3, 4, 5, ...
+        - `1,3,5,7,...` → 1, 3, 5, 7, 9, 11, ...
+        - `2,5,8,11,...` → 2, 5, 8, 11, 14, 17, ...
+
+        *Geometric Sequences:*
+        - `1,2,4,8,...` → 1, 2, 4, 8, 16, 32, ...
+        - `3,6,12,24,...` → 3, 6, 12, 24, 48, 96, ...
+
+        **📊 Continuous Infinite Bounds:**
+        - `inf`, `infinity`, `∞` for +∞
+        - `-inf`, `-infinity`, `-∞` for -∞
+        - Mixed: `[0, inf]`, `[-inf, 0]`, `[-inf, inf]`
+        """)
+
     with st.expander("🧮 Mathematical Functions", expanded=False):
         st.markdown("""
-        **Available Functions:**
+        **🔧 Available Functions:**
+
         *Basic Math:*
         - `+`, `-`, `*`, `/`, `**` (power)
         - `sqrt(x)` - Square root
         - `abs(x)` - Absolute value
+
         *Exponential & Logarithmic:*
         - `exp(x)` - e^x
         - `log(x)` - Natural log (ln)
+        - `log10(x)` - Base-10 log
+
         *Trigonometric:*
         - `sin(x)`, `cos(x)`, `tan(x)`
+        - `asin(x)`, `acos(x)`, `atan(x)`
+
         *Special Functions:*
         - `factorial(n)` - n! (discrete only)
+        - `gamma(x)` - Gamma function
+
         *Constants:*
         - `pi` - π ≈ 3.14159
         - `e` - Euler's number ≈ 2.71828
         """)
-    
+
     with st.expander("🎯 Moment Interpretation", expanded=False):
         st.markdown("""
-        **Moment Meanings:**
+        **📊 Moment Meanings:**
+
         *Raw Moments (about origin):*
         - **μ₁(0)** = Mean (E[X])
         - **μ₂(0)** = Second moment (E[X²])
         - **μ₃(0)** = Third moment (E[X³])
         - **μ₄(0)** = Fourth moment (E[X⁴])
+
         *Central Moments (about mean):*
         - **μ₁(μ)** = 0 (always)
         - **μ₂(μ)** = Variance (σ²)
         - **μ₃(μ)** = Used for skewness
         - **μ₄(μ)** = Used for kurtosis
+
         *Statistical Measures:*
         - **Skewness** = μ₃/σ³ (asymmetry)
         - **Kurtosis** = μ₄/σ⁴ (tail heaviness)
         - **Excess Kurtosis** = Kurtosis - 3
         """)
 
-# Footer
-st.markdown("""
-<div class="footer">
-    <p>Moments Calculator | Discrete and Continuous Random Variables</p>
-    <p>For educational purposes. Always verify mathematical validity of inputs.</p>
-</div>
-""", unsafe_allow_html=True)
+    with st.expander("🚀 Performance Tips", expanded=False):
+        st.markdown("""
+        **⚡ Optimization Tips:**
+
+        *For Infinite Series:*
+        - Start with fewer terms (20-50)
+        - Check convergence warnings
+        - Use geometric distributions for testing
+        - Avoid rapidly growing functions
+
+        *For Better Accuracy:*
+        - Use conditional expressions: `f(x) if condition else 0`
+        - Ensure probabilities are non-negative
+        - Check that total probability ≈ 1.0
+        - Use appropriate bounds for continuous functions
+
+        *Common Issues:*
+        - Division by zero in factorial
+        - Negative arguments in sqrt/log
+        - Overflow in exponential functions
+        - Non-converging infinite series
+        """)
+
+# Enhanced footer with statistics
+st.markdown("---")
+
+# Show computation statistics if available
+if 'is_valid' in locals() and is_valid:
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        if var_type == "Discrete (DRV)" and is_infinite:
+            terms_used = max([moment_analyses[r]['terms_used'] for r in range(1, 5)])
+            st.metric("Terms Computed", f"{terms_used}")
+        else:
+            st.metric("Variable Type", "Continuous" if var_type == "Continuous (CRV)" else "Discrete")
+
+    with col2:
+        if 'prob_sum' in locals():
+            st.metric("Probability Sum", f"{prob_sum:.6f}")
+        elif 'integral_val' in locals():
+            st.metric("PDF Integral", f"{integral_val:.6f}")
+
+    with col3:
+        if 'a_value' in locals():
+            st.metric("Reference Point", f"{a_value:.4f}")
+
+    with col4:
+        if var_type == "Discrete (DRV)" and is_infinite:
+            convergence_count = sum(1 for r in range(1, 5) if moment_analyses[r]['converged'])
+            st.metric("Converged Moments", f"{convergence_count}/4")
