@@ -786,7 +786,7 @@ with st.sidebar:
         ["Discrete (DRV)", "Continuous (CRV)"],
         index=1,  # This sets CRV as the default selection
         help="🎲 Discrete: Countable values (coins, dice)
-📊 Continuous: Any value in an interval (height, weight)"
+        📊 Continuous: Any value in an interval (height, weight)"
     )
     
     st.markdown("---")
