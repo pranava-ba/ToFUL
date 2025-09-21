@@ -336,7 +336,7 @@ class InfiniteSeriesHandler:
     @staticmethod
     def estimate_infinite_sum(func_str: str, values: List[float], pattern_type: str, params: dict) -> Tuple[float, bool, str]:
         safe_dict = {
-            'x': 0, 'factorial': np.math.factorial, 'sqrt': np.sqrt,
+            'x': 0, 'factorial': math.factorial, 'sqrt': np.sqrt,
             'exp': np.exp, 'log': np.log, 'sin': np.sin, 'cos': np.cos,
             'tan': np.tan, 'pi': np.pi, 'e': np.e
         }
@@ -384,7 +384,7 @@ class EnhancedProbabilityValidator:
         
         try:
             safe_dict = {
-                'x': 0, 'factorial': np.math.factorial, 'sqrt': np.sqrt,
+                'x': 0, 'factorial': math.factorial, 'sqrt': np.sqrt,
                 'exp': np.exp, 'log': np.log, 'sin': np.sin, 'cos': np.cos,
                 'tan': np.tan, 'pi': np.pi, 'e': np.e
             }
@@ -505,7 +505,7 @@ class EnhancedMomentCalculator:
     @staticmethod
     def calculate_drv_moment_infinite(func_str: str, range_values: List[float], r: int, a: float, max_iter: int = 10**6, tol: float = 1e-12) -> Tuple[float, dict]:
         safe_dict = {
-            'factorial': np.math.factorial, 'sqrt': np.sqrt,
+            'factorial': math.factorial, 'sqrt': np.sqrt,
             'exp': np.exp, 'log': np.log, 'sin': np.sin,
             'cos': np.cos, 'tan': np.tan, 'pi': np.pi, 'e': np.e
         }
@@ -583,7 +583,7 @@ class EnhancedMomentCalculator:
             return EnhancedMomentCalculator.calculate_drv_moment_infinite(func_str, range_values, r, a, max_iter, tol)
         
         safe_dict = {
-            'factorial': np.math.factorial, 'sqrt': np.sqrt,
+            'factorial': math.factorial, 'sqrt': np.sqrt,
             'exp': np.exp, 'log': np.log, 'sin': np.sin,
             'cos': np.cos, 'tan': np.tan, 'pi': np.pi, 'e': np.e
         }
