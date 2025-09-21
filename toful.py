@@ -750,11 +750,9 @@ def show_landing_page():
     st.success("""
     **⚡ Features**
     
-    • Support for **Discrete** and **Continuous** RVs  
-    • Handles **infinite series** with convergence detection  
+    • Support for **Discrete** and **Continuous** RVs    
     • **Adjustable precision** for calculation & display  
     • **Real-time validation** and error guidance  
-    • **Beautiful, responsive** interface
     """)
     
     # How to Use — using st.warning for instructional tone
