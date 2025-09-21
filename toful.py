@@ -1206,18 +1206,18 @@ with col1:
                     Current probability sum: <code>{prob_sum:.15f}</code><br>
                     Expected sum: <code>1.0</code><br>
                     Difference: <code>{abs(prob_sum - 1.0):.15f}</code><br>
-                    Terms computed: <code>{analysis.get('terms_computed', 'N/A')}</code>
+                    Terms computed: <code>{analysis.get('terms_computed', 'N/A') if 'analysis' in locals() else 'Not available'}</code>
                 </div>
                 """, unsafe_allow_html=True)
-                
-                # Show convergence issues for infinite series
-                if is_infinite:
-                    st.markdown(f"""
-                    <div class="info-box">
-                        <strong>♾️ Infinite Series Notes:</strong><br>
-                        {analysis.get('convergence_info', 'No convergence info available')}
-                    </div>
-                    """, unsafe_allow_html=True)
+    
+    # Show convergence issues for infinite series
+            if is_infinite and 'analysis' in locals():
+                st.markdown(f"""
+                <div class="info-box">
+                    <strong>♾️ Infinite Series Notes:</strong><br>
+                    {analysis.get('convergence_info', 'No convergence info available')}
+                </div>
+                """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="warning-box">
