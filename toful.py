@@ -113,12 +113,12 @@ st.markdown("""
     /* Animated metric cards */
     .metric-container {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem 1.5rem;
-        border-radius: 16px;
+        padding: 1rem;
+        border-radius: 12px;
         color: white;
         text-align: center;
-        margin: 0.5rem 0;
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        margin: 0.25rem 0;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
@@ -134,22 +134,22 @@ st.markdown("""
         transition: left 0.5s;
     }
     .metric-container:hover {
-        transform: translateY(-5px) scale(1.02);
-        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
     }
     .metric-container:hover::before {
         left: 100%;
     }
     .metric-label {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
         font-weight: 500;
-        margin-bottom: 0.8rem;
+        margin-bottom: 0.4rem;
         opacity: 0.9;
         text-transform: uppercase;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
     }
     .metric-value {
-        font-size: 1.8rem;
+        font-size: 1.2rem;
         font-weight: 700;
         margin: 0;
         font-family: 'SF Mono', monospace;
@@ -288,18 +288,13 @@ st.markdown("""
     /* Responsive grid for moments */
     .moments-grid {
         display: grid;
-        gap: 1rem;
+        gap: 0.5rem;
         margin: 1rem 0;
     }
     .moments-grid-2 { grid-template-columns: repeat(2, 1fr); }
     .moments-grid-3 { grid-template-columns: repeat(3, 1fr); }
     .moments-grid-4 { grid-template-columns: repeat(4, 1fr); }
     .moments-grid-5 { grid-template-columns: repeat(5, 1fr); }
-    .moments-grid-6 { grid-template-columns: repeat(6, 1fr); }
-    .moments-grid-7 { grid-template-columns: repeat(7, 1fr); }
-    .moments-grid-8 { grid-template-columns: repeat(8, 1fr); }
-    .moments-grid-9 { grid-template-columns: repeat(9, 1fr); }
-    .moments-grid-10 { grid-template-columns: repeat(10, 1fr); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -328,7 +323,7 @@ def rth_moment(pmf, support, r, c=0, tol=1e-12, max_iter=10**6):
             moment += (x - c)**r * p
     return moment
 
-# Helper classes (same as before, no changes needed)
+# Helper classes
 class InfiniteSeriesHandler:
     @staticmethod
     def detect_series_pattern(values: List[float]) -> Tuple[str, dict]:
@@ -681,20 +676,50 @@ def to_subscript(n):
 def show_landing_page():
     st.markdown("""
     <div class="main-header">
-        <h1>Welcome to Moments Calculator</h1>
-        <p>Advanced statistical moment calculation for discrete and continuous random variables</p>
+        <h1>Moments Calculator</h1>
+        <p>Calculate statistical moments for discrete and continuous random variables</p>
     </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div style="background: rgba(255,255,255,0.05); padding: 2rem; border-radius: 16px; margin: 2rem 0; backdrop-filter: blur(10px);">
-        <h2 style="color: white; margin-bottom: 1rem;">✨ Features</h2>
-        <ul style="color: #e0e0e0; font-size: 1.1rem; line-height: 1.8;">
-            <li>Calculate moments for both <strong>Discrete</strong> and <strong>Continuous</strong> random variables</li>
-            <li>Support for <strong>infinite series</strong> with automatic convergence detection</li>
-            <li>Flexible precision settings for calculation and display</li>
-            <li>Beautiful, responsive interface with real-time results</li>
-        </ul>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
+        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
+            <h3 style="color: #667eea; margin: 0 0 1rem 0;">📘 What are Moments?</h3>
+            <p style="color: #e0e0e0; line-height: 1.6;">
+                Moments describe the shape and characteristics of a probability distribution.
+                The <strong>r-th moment about point a</strong> is defined as:
+            </p>
+            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin: 1rem 0; font-family: monospace; color: #fff;">
+                E[(X - a)<sup>r</sup>]
+            </div>
+            <ul style="color: #e0e0e0; padding-left: 1.2rem; line-height: 1.5;">
+                <li><strong>1st moment about 0</strong> = Mean</li>
+                <li><strong>2nd moment about mean</strong> = Variance</li>
+                <li><strong>3rd moment about mean</strong> = Skewness</li>
+                <li><strong>4th moment about mean</strong> = Kurtosis</li>
+            </ul>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
+            <h3 style="color: #f093fb; margin: 0 0 1rem 0;">⚡ Features</h3>
+            <ul style="color: #e0e0e0; padding-left: 1.2rem; line-height: 1.8;">
+                <li>Support for <strong>Discrete</strong> and <strong>Continuous</strong> RVs</li>
+                <li>Handles <strong>infinite series</strong> with convergence detection</li>
+                <li><strong>Adjustable precision</strong> for calculation & display</li>
+                <li><strong>Real-time validation</strong> and error guidance</li>
+                <li><strong>Beautiful, responsive</strong> interface</li>
+            </ul>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
+            <h3 style="color: #f5576c; margin: 0 0 1rem 0;">🎯 How to Use</h3>
+            <ol style="color: #e0e0e0; padding-left: 1.5rem; line-height: 1.8;">
+                <li>Choose variable type (Discrete/Continuous)</li>
+                <li>Define range or bounds</li>
+                <li>Enter probability function</li>
+                <li>Select moment reference point</li>
+                <li>Set max moment order & precision</li>
+                <li>Click to compute!</li>
+            </ol>
+        </div>
     </div>
     """, unsafe_allow_html=True)
     
@@ -866,8 +891,10 @@ else:
             st.info("👆 Enter your probability function in the sidebar to begin calculation")
         else:
             try:
-                # Parse range
+                # Initialize is_infinite
                 is_infinite = False
+                
+                # Parse range
                 if var_type == "Discrete (DRV)":
                     if not range_input:
                         raise ValueError("Please enter range values")
@@ -968,25 +995,28 @@ else:
                     
                     progress_bar.empty()
                     
-                    # Display moments in responsive grid
+                    # Display moments in compact grid (max 5 per row)
                     st.markdown("#### 📈 Calculated Moments")
+                    cols_per_row = min(5, len(moments))
+                    rows = (len(moments) + cols_per_row - 1) // cols_per_row
                     
-                    # Create responsive grid based on number of moments
-                    grid_class = f"moments-grid-{min(len(moments), 10)}"
-                    st.markdown(f'<div class="moments-grid {grid_class}">', unsafe_allow_html=True)
-                    
-                    for r, moment_val in moments.items():
-                        # Use subscript formatting
-                        subscript_r = to_subscript(r)
-                        color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#ff6b6b', '#45b7d1', '#55efc4', '#74b9ff', '#a29bfe', '#fd79a8'][r % 10]
-                        st.markdown(f"""
-                        <div class="metric-container" style="background: {color}; margin: 0;">
-                            <div class="metric-label">μ{subscript_r}({a_value:.2f})</div>
-                            <div class="metric-value">{moment_val:.{st.session_state.display_precision}f}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    for row in range(rows):
+                        cols = st.columns(cols_per_row)
+                        for col_idx in range(cols_per_row):
+                            moment_idx = row * cols_per_row + col_idx + 1
+                            if moment_idx in moments:
+                                with cols[col_idx]:
+                                    r = moment_idx
+                                    moment_val = moments[r]
+                                    colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#ff6b6b']
+                                    color = colors[r % len(colors)]
+                                    # Removed (a_value) from label - just show μ₁, μ₂, etc.
+                                    st.markdown(f"""
+                                    <div class="metric-container" style="background: {color};">
+                                        <div class="metric-label">μ{to_subscript(r)}</div>
+                                        <div class="metric-value">{moment_val:.{st.session_state.display_precision}f}</div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
                     
                     # Show convergence details for infinite DRV
                     if var_type == "Discrete (DRV)" and is_infinite and show_convergence:
@@ -1003,7 +1033,7 @@ else:
                         convergence_df = pd.DataFrame(convergence_data)
                         st.dataframe(convergence_df, use_container_width=True)
                     
-                    # Statistical measures for central moments
+                    # Statistical measures for central moments (only up to 4th moment)
                     if moment_about == "About the mean (a = μ)" and len(moments) >= 2:
                         st.markdown("#### 📊 Statistical Measures")
                         variance = moments[2]
@@ -1014,31 +1044,35 @@ else:
                             ("Std Dev (σ)", std_dev)
                         ]
                         
+                        # Only add up to 4th moment stats
                         if len(moments) >= 3 and std_dev > 1e-15:
                             skewness = moments[3] / (std_dev ** 3)
                             statistical_measures.append(("Skewness", skewness))
                         if len(moments) >= 4 and std_dev > 1e-15:
                             kurtosis = moments[4] / (std_dev ** 4)
                             excess_kurtosis = kurtosis - 3
-                            statistical_measures.extend([
-                                ("Kurtosis", kurtosis),
-                                ("Excess Kurtosis", excess_kurtosis)
-                            ])
+                            statistical_measures.append(("Kurtosis", kurtosis))
+                            statistical_measures.append(("Excess Kurtosis", excess_kurtosis))
                         
-                        # Display statistical measures in grid
-                        grid_class = f"moments-grid-{min(len(statistical_measures), 5)}"
-                        st.markdown(f'<div class="moments-grid {grid_class}">', unsafe_allow_html=True)
+                        # Compact grid for statistical measures
+                        cols_per_row = min(4, len(statistical_measures))
+                        rows = (len(statistical_measures) + cols_per_row - 1) // cols_per_row
                         
-                        for label, value in statistical_measures:
-                            color = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#ff6b6b'][len(st.session_state.get('stat_colors', [])) % 5]
-                            st.markdown(f"""
-                            <div class="metric-container" style="background: {color}; margin: 0;">
-                                <div class="metric-label">{label}</div>
-                                <div class="metric-value">{value:.{st.session_state.display_precision}f}</div>
-                            </div>
-                            """, unsafe_allow_html=True)
-                        
-                        st.markdown('</div>', unsafe_allow_html=True)
+                        for row in range(rows):
+                            cols = st.columns(cols_per_row)
+                            for col_idx in range(cols_per_row):
+                                stat_idx = row * cols_per_row + col_idx
+                                if stat_idx < len(statistical_measures):
+                                    with cols[col_idx]:
+                                        label, value = statistical_measures[stat_idx]
+                                        colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#ff6b6b', '#45b7d1']
+                                        color = colors[stat_idx % len(colors)]
+                                        st.markdown(f"""
+                                        <div class="metric-container" style="background: {color};">
+                                            <div class="metric-label">{label}</div>
+                                            <div class="metric-value">{value:.{st.session_state.display_precision}f}</div>
+                                        </div>
+                                        """, unsafe_allow_html=True)
                     
                     # Detailed results table (without "About Point" column)
                     st.markdown("#### 📋 Detailed Results Table")
@@ -1047,6 +1081,7 @@ else:
                         row = {
                             'Moment Order (r)': r,
                             'Moment Value': f"{moment_val:.{st.session_state.display_precision}f}",
+                            # Removed "About Point (a)" column
                             'Interpretation': f"E[(X-{a_value:.2f}){to_subscript(r)}]"
                         }
                         if var_type == "Discrete (DRV)" and is_infinite:
