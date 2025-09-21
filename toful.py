@@ -1,9 +1,9 @@
 import streamlit as st
 import numpy as np
-import math
 from scipy import integrate
 import pandas as pd
 from typing import Tuple, Union, List
+import math  # ✅ ADDED FOR factorial
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Enhanced CSS
+# Enhanced CSS (keep your beautiful styling for calculator)
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -336,7 +336,7 @@ class InfiniteSeriesHandler:
     @staticmethod
     def estimate_infinite_sum(func_str: str, values: List[float], pattern_type: str, params: dict) -> Tuple[float, bool, str]:
         safe_dict = {
-            'x': 0, 'factorial': math.factorial, 'sqrt': np.sqrt,
+            'x': 0, 'factorial': math.factorial, 'sqrt': np.sqrt,  # ✅ FIXED
             'exp': np.exp, 'log': np.log, 'sin': np.sin, 'cos': np.cos,
             'tan': np.tan, 'pi': np.pi, 'e': np.e
         }
@@ -379,12 +379,12 @@ class InfiniteSeriesHandler:
 class EnhancedProbabilityValidator:
     @staticmethod
     def validate_drv_probabilities(func_str: str, range_values: List[float], is_infinite: bool = False) -> Tuple[bool, str, float, dict]:
-        # Initialize analysis BEFORE try block to avoid UnboundLocalError
+        # ✅ Initialize analysis BEFORE try block
         analysis = {"terms_computed": 0, "convergence_info": "", "series_type": "finite"}
         
         try:
             safe_dict = {
-                'x': 0, 'factorial': math.factorial, 'sqrt': np.sqrt,
+                'x': 0, 'factorial': math.factorial, 'sqrt': np.sqrt,  # ✅ FIXED
                 'exp': np.exp, 'log': np.log, 'sin': np.sin, 'cos': np.cos,
                 'tan': np.tan, 'pi': np.pi, 'e': np.e
             }
@@ -505,7 +505,7 @@ class EnhancedMomentCalculator:
     @staticmethod
     def calculate_drv_moment_infinite(func_str: str, range_values: List[float], r: int, a: float, max_iter: int = 10**6, tol: float = 1e-12) -> Tuple[float, dict]:
         safe_dict = {
-            'factorial': math.factorial, 'sqrt': np.sqrt,
+            'factorial': math.factorial, 'sqrt': np.sqrt,  # ✅ FIXED
             'exp': np.exp, 'log': np.log, 'sin': np.sin,
             'cos': np.cos, 'tan': np.tan, 'pi': np.pi, 'e': np.e
         }
@@ -583,7 +583,7 @@ class EnhancedMomentCalculator:
             return EnhancedMomentCalculator.calculate_drv_moment_infinite(func_str, range_values, r, a, max_iter, tol)
         
         safe_dict = {
-            'factorial': math.factorial, 'sqrt': np.sqrt,
+            'factorial': math.factorial, 'sqrt': np.sqrt,  # ✅ FIXED
             'exp': np.exp, 'log': np.log, 'sin': np.sin,
             'cos': np.cos, 'tan': np.tan, 'pi': np.pi, 'e': np.e
         }
@@ -719,28 +719,57 @@ def to_subscript(n):
     """Convert number to subscript string"""
     return ''.join(SUBSCRIPT_MAP.get(int(d), str(d)) for d in str(n))
 
-# Landing Page
+# ✨ NEW: Streamlit-Native Landing Page (No HTML rendering issues!)
+def show_landing_page():
+    # Main header (keep your beautiful animated header)
     st.markdown("""
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
-    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
-        <h3 style="color: #667eea; margin: 0 0 1rem 0;">📘 What are Moments?</h3>
-        ...
+    <div class="main-header">
+        <h1>Moments Calculator</h1>
+        <p>Calculate statistical moments for discrete and continuous random variables</p>
     </div>
+    """, unsafe_allow_html=True)
     
-    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
-        <h3 style="color: #f093fb; margin: 0 0 1rem 0;">⚡ Features</h3>
-        <p>TEST: If you see this paragraph, HTML is WORKING.</p>  ← ADD THIS
-        <ul>...</ul>
-    </div>
+    # What are Moments? — using st.info for guaranteed rendering
+    st.info("""
+    **📘 What are Moments?**
     
-    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
-        <h3 style="color: #f5576c; margin: 0 0 1rem 0;">🎯 How to Use</h3>
-        <p>TEST 2: This should also appear normally.</p>  ← ADD THIS
-        <ol>...</ol>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    Moments describe the shape and characteristics of a probability distribution.
+    The **r-th moment about point a** is defined as:
     
+    ```
+    E[(X - a)^r]
+    ```
+    
+    • **1st moment about 0** = Mean  
+    • **2nd moment about mean** = Variance  
+    • **3rd moment about mean** = Skewness  
+    • **4th moment about mean** = Kurtosis
+    """)
+    
+    # Features — using st.success for visual appeal
+    st.success("""
+    **⚡ Features**
+    
+    • Support for **Discrete** and **Continuous** RVs  
+    • Handles **infinite series** with convergence detection  
+    • **Adjustable precision** for calculation & display  
+    • **Real-time validation** and error guidance  
+    • **Beautiful, responsive** interface
+    """)
+    
+    # How to Use — using st.warning for instructional tone
+    st.warning("""
+    **🎯 How to Use**
+    
+    1. Choose variable type (Discrete/Continuous)  
+    2. Define range or bounds  
+    3. Enter probability function  
+    4. Select moment reference point  
+    5. Set max moment order & precision  
+    6. Click to compute!
+    """)
+    
+    # Start button
     if st.button("🚀 Start Calculating", type="primary", use_container_width=True):
         st.session_state.show_calculator = True
         st.rerun()
