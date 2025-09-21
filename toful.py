@@ -901,11 +901,12 @@ else:
         max_moment_order = st.number_input(
             "Maximum moment order (r)",
             min_value=1,
-            max_value=20,
             value=4,
             step=1,
             help="Calculate moments from 1st to r-th order"
         )
+        if max_moment_order > 20:
+            st.warning(f"⚠️ Computing up to {int(max_moment_order)}-th moment. This may take significant time and could be numerically unstable.")
         
         with st.expander("⚙️ Advanced Options", expanded=False):
             show_convergence = st.checkbox(
