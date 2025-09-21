@@ -720,7 +720,7 @@ def to_subscript(n):
     return ''.join(SUBSCRIPT_MAP.get(int(d), str(d)) for d in str(n))
 
 # Landing Page
-st.markdown("""
+    st.markdown("""
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
     <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
         <h3 style="color: #667eea; margin: 0 0 1rem 0;">📘 What are Moments?</h3>
