@@ -905,9 +905,7 @@ with st.sidebar:
     moment_about = st.selectbox(
         "Calculate moments about:",
         ["About the origin (a = 0)", "About the mean (a = μ)", "About custom value"],
-        help="🎯 Origin: Raw moments
-📊 Mean: Central moments
-⚙️ Custom: Moments about any point"
+        help="🎯 Origin: Raw moments\n📊 Mean: Central moments\n⚙️ Custom: Moments about any point"
     )
     
     if moment_about == "About custom value":
