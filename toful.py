@@ -720,57 +720,26 @@ def to_subscript(n):
     return ''.join(SUBSCRIPT_MAP.get(int(d), str(d)) for d in str(n))
 
 # Landing Page
-def show_landing_page():
-    st.markdown("""
-    <div class="main-header">
-        <h1>Moments Calculator</h1>
-        <p>Calculate statistical moments for discrete and continuous random variables</p>
+st.markdown("""
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
+    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
+        <h3 style="color: #667eea; margin: 0 0 1rem 0;">📘 What are Moments?</h3>
+        ...
     </div>
-    """, unsafe_allow_html=True)
     
-    st.markdown("""
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
-        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
-            <h3 style="color: #667eea; margin: 0 0 1rem 0;">📘 What are Moments?</h3>
-            <p style="color: #e0e0e0; line-height: 1.6;">
-                Moments describe the shape and characteristics of a probability distribution.
-                The <strong>r-th moment about point a</strong> is defined as:
-            </p>
-            <div style="background: rgba(0,0,0,0.2); padding: 1rem; border-radius: 8px; margin: 1rem 0; font-family: monospace; color: #fff;">
-                E[(X - a)<sup>r</sup>]
-            </div>
-            <ul style="color: #e0e0e0; padding-left: 1.2rem; line-height: 1.5;">
-                <li><strong>1st moment about 0</strong> = Mean</li>
-                <li><strong>2nd moment about mean</strong> = Variance</li>
-                <li><strong>3rd moment about mean</strong> = Skewness</li>
-                <li><strong>4th moment about mean</strong> = Kurtosis</li>
-            </ul>
-        </div>
-        
-        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
-            <h3 style="color: #f093fb; margin: 0 0 1rem 0;">⚡ Features</h3>
-            <ul style="color: #e0e0e0; padding-left: 1.2rem; line-height: 1.8;">
-                <li>Support for <strong>Discrete</strong> and <strong>Continuous</strong> RVs</li>
-                <li>Handles <strong>infinite series</strong> with convergence detection</li>
-                <li><strong>Adjustable precision</strong> for calculation & display</li>
-                <li><strong>Real-time validation</strong> and error guidance</li>
-                <li><strong>Beautiful, responsive</strong> interface</li>
-            </ul>
-        </div>
-        
-        <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
-            <h3 style="color: #f5576c; margin: 0 0 1rem 0;">🎯 How to Use</h3>
-            <ol style="color: #e0e0e0; padding-left: 1.5rem; line-height: 1.8;">
-                <li>Choose variable type (Discrete/Continuous)</li>
-                <li>Define range or bounds</li>
-                <li>Enter probability function</li>
-                <li>Select moment reference point</li>
-                <li>Set max moment order & precision</li>
-                <li>Click to compute!</li>
-            </ol>
-        </div>
+    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
+        <h3 style="color: #f093fb; margin: 0 0 1rem 0;">⚡ Features</h3>
+        <p>TEST: If you see this paragraph, HTML is WORKING.</p>  ← ADD THIS
+        <ul>...</ul>
     </div>
-    """, unsafe_allow_html=True)
+    
+    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
+        <h3 style="color: #f5576c; margin: 0 0 1rem 0;">🎯 How to Use</h3>
+        <p>TEST 2: This should also appear normally.</p>  ← ADD THIS
+        <ol>...</ol>
+    </div>
+</div>
+""", unsafe_allow_html=True)
     
     if st.button("🚀 Start Calculating", type="primary", use_container_width=True):
         st.session_state.show_calculator = True
