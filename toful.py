@@ -312,7 +312,7 @@ class InfiniteSeriesHandler:
             if all(abs(ratios[i] - ratios[0]) < 1e-15 for i in range(len(ratios))):
                 return "geometric", {"start": values[0], "ratio": ratios[0]}
         return "custom", {"values": values}
-    
+
     @staticmethod
     def generate_extended_series(pattern_type: str, params: dict, max_terms: int = 100) -> List[float]:
         if pattern_type == "arithmetic":
@@ -331,7 +331,7 @@ class InfiniteSeriesHandler:
                 return extended
             else:
                 return [base_values[0] + i for i in range(max_terms)]
-    
+
     @staticmethod
     def estimate_infinite_sum(func_str: str, values: List[float], pattern_type: str, params: dict) -> Tuple[float, bool, str]:
         safe_dict = {
@@ -347,10 +347,12 @@ class InfiniteSeriesHandler:
                 term = eval(func_str, {"__builtins__": {}}, safe_dict)
                 terms.append(term)
                 partial_sum += term
+
             if len(terms) >= 20:
                 recent_terms = terms[-10:]
                 if all(abs(t) < 1e-15 for t in recent_terms):
                     return partial_sum, True, f"Series converges (terms → 0, sum ≈ {partial_sum:.15f})"
+
                 if len(terms) >= 25 and all(abs(t) > 1e-20 for t in terms[-15:]):
                     ratios = [abs(terms[i+1]/terms[i]) for i in range(len(terms)-10, len(terms)-1)]
                     avg_ratio = sum(ratios) / len(ratios)
@@ -360,19 +362,25 @@ class InfiniteSeriesHandler:
                         return estimated_total, True, f"Series converges (ratio test, sum ≈ {estimated_total:.15f})"
                     elif avg_ratio > 1.1:
                         return partial_sum, False, "Series appears to diverge (ratio test)"
+
                 if len(terms) >= 15:
                     signs = [1 if t >= 0 else -1 for t in terms[-15:]]
                     if len(set(signs)) == 2:
                         abs_terms = [abs(t) for t in terms[-10:]]
                         if all(abs_terms[i] >= abs_terms[i+1] for i in range(len(abs_terms)-1)):
                             return partial_sum, True, f"Alternating series converges (sum ≈ {partial_sum:.15f})"
+
             return partial_sum, False, f"Convergence uncertain (partial sum of {len(terms)} terms: {partial_sum:.15f})"
+
         except Exception as e:
             return 0, False, f"Error in series evaluation: {str(e)}"
 
 class EnhancedProbabilityValidator:
     @staticmethod
     def validate_drv_probabilities(func_str: str, range_values: List[float], is_infinite: bool = False) -> Tuple[bool, str, float, dict]:
+        # Initialize analysis BEFORE try block to avoid UnboundLocalError
+        analysis = {"terms_computed": 0, "convergence_info": "", "series_type": "finite"}
+        
         try:
             safe_dict = {
                 'x': 0, 'factorial': np.math.factorial, 'sqrt': np.sqrt,
@@ -380,17 +388,19 @@ class EnhancedProbabilityValidator:
                 'tan': np.tan, 'pi': np.pi, 'e': np.e
             }
             negative_probs = []
-            analysis = {"terms_computed": 0, "convergence_info": "", "series_type": "finite"}
+
             if is_infinite:
                 pattern_type, params = InfiniteSeriesHandler.detect_series_pattern(range_values[:10])
                 total_prob, converges, convergence_msg = InfiniteSeriesHandler.estimate_infinite_sum(
                     func_str, range_values, pattern_type, params
                 )
+                
                 for x_val in range_values[:50]:
                     safe_dict['x'] = x_val
                     prob = eval(func_str, {"__builtins__": {}}, safe_dict)
                     if prob < 0:
                         negative_probs.append(x_val)
+                
                 analysis.update({
                     "terms_computed": min(50, len(range_values)),
                     "convergence_info": convergence_msg,
@@ -407,20 +417,25 @@ class EnhancedProbabilityValidator:
                     if prob < 0:
                         negative_probs.append(x_val)
                     total_prob += prob
+                
                 analysis.update({
                     "terms_computed": len(range_values),
                     "convergence_info": "Finite sum computed exactly",
                     "series_type": "finite"
                 })
                 tolerance = 1e-15
+
             if negative_probs:
                 return False, f"Negative probabilities detected at x = {negative_probs[:3]}" + ("..." if len(negative_probs) > 3 else ""), total_prob, analysis
+
             if abs(total_prob - 1.0) > tolerance:
                 return False, f"Probabilities sum to {total_prob:.15f}, should be 1.0", total_prob, analysis
+
             return True, f"Valid probability function (sum = {total_prob:.15f})", total_prob, analysis
+
         except Exception as e:
             return False, f"Error evaluating function: {str(e)}", 0, analysis
-    
+
     @staticmethod
     def validate_crv_pdf(func_str: str, range_bounds: Tuple[float, float]) -> Tuple[bool, str, float]:
         try:
@@ -429,6 +444,7 @@ class EnhancedProbabilityValidator:
                 'sin': np.sin, 'cos': np.cos, 'tan': np.tan,
                 'pi': np.pi, 'e': np.e
             }
+
             def pdf_func(x):
                 safe_dict['x'] = x
                 try:
@@ -436,7 +452,9 @@ class EnhancedProbabilityValidator:
                     return max(0, result)
                 except:
                     return 0
+
             lower, upper = range_bounds
+            
             if np.isinf(lower) and np.isinf(upper):
                 test_points = np.concatenate([
                     np.linspace(-100, -1, 20),
@@ -455,7 +473,9 @@ class EnhancedProbabilityValidator:
                 ])
             else:
                 test_points = np.linspace(lower, upper, 100)
+
             original_func = lambda x: eval(func_str, {"__builtins__": {}}, {**safe_dict, 'x': x})
+            
             for point in test_points:
                 try:
                     val = original_func(point)
@@ -463,6 +483,7 @@ class EnhancedProbabilityValidator:
                         return False, f"Negative PDF value {val:.15f} at x = {point:.6f}", 0
                 except:
                     continue
+
             try:
                 integral_result, error = integrate.quad(
                     pdf_func, lower, upper,
@@ -470,9 +491,12 @@ class EnhancedProbabilityValidator:
                 )
             except:
                 integral_result, error = integrate.quad(pdf_func, lower, upper, limit=100)
+
             if abs(integral_result - 1.0) > 1e-4:
                 return False, f"PDF integrates to {integral_result:.15f} ± {error:.2e}, not 1.0", integral_result
+
             return True, f"Valid PDF (integral = {integral_result:.15f} ± {error:.2e})", integral_result
+
         except Exception as e:
             return False, f"Error evaluating PDF: {str(e)}", 0
 
@@ -484,12 +508,14 @@ class EnhancedMomentCalculator:
             'exp': np.exp, 'log': np.log, 'sin': np.sin,
             'cos': np.cos, 'tan': np.tan, 'pi': np.pi, 'e': np.e
         }
+
         def pmf(x):
             safe_dict['x'] = x
             try:
                 return eval(func_str, {"__builtins__": {}}, safe_dict)
             except:
                 return 0
+
         try:
             moment = rth_moment(pmf, "infinite", r, a, tol, max_iter)
             cumulative = 0.0
@@ -500,22 +526,26 @@ class EnhancedMomentCalculator:
                 terms_used += 1
                 if 1 - cumulative < tol:
                     break
+            
             analysis = {
                 "converged": True,
                 "terms_used": terms_used,
                 "convergence_info": f"Converged after {terms_used} terms using rth_moment algorithm"
             }
             return moment, analysis
+
         except Exception as e:
             moment = 0
             terms = []
             analysis = {"converged": False, "terms_used": 0, "convergence_info": ""}
+            
             for i, x_val in enumerate(range_values[:200]):
                 safe_dict['x'] = x_val
                 prob = eval(func_str, {"__builtins__": {}}, safe_dict)
                 term = ((x_val - a) ** r) * prob
                 terms.append(term)
                 moment += term
+                
                 if i >= 30 and i % 10 == 0:
                     recent_terms = terms[-10:]
                     if all(abs(t) < 1e-18 for t in recent_terms):
@@ -525,6 +555,7 @@ class EnhancedMomentCalculator:
                             "convergence_info": f"Converged after {i+1} terms (terms → 0)"
                         })
                         break
+                    
                     if len(terms) >= 50:
                         recent_sums = [sum(terms[:j]) for j in range(len(terms)-20, len(terms))]
                         sum_diffs = [abs(recent_sums[i+1] - recent_sums[i]) for i in range(len(recent_sums)-1)]
@@ -535,29 +566,34 @@ class EnhancedMomentCalculator:
                                 "convergence_info": f"Converged after {i+1} terms (partial sums stabilized)"
                             })
                             break
+
             if not analysis["converged"]:
                 analysis.update({
                     "converged": False,
                     "terms_used": len(terms),
                     "convergence_info": f"Used {len(terms)} terms, convergence uncertain. Error: {str(e)}"
                 })
+
             return moment, analysis
-    
+
     @staticmethod
     def calculate_drv_moment(func_str: str, range_values: List[float], r: int, a: float, is_infinite: bool = False, max_iter: int = 10**6, tol: float = 1e-12) -> Tuple[float, dict]:
         if is_infinite:
             return EnhancedMomentCalculator.calculate_drv_moment_infinite(func_str, range_values, r, a, max_iter, tol)
+        
         safe_dict = {
             'factorial': np.math.factorial, 'sqrt': np.sqrt,
             'exp': np.exp, 'log': np.log, 'sin': np.sin,
             'cos': np.cos, 'tan': np.tan, 'pi': np.pi, 'e': np.e
         }
+
         def pmf(x):
             safe_dict['x'] = x
             try:
                 return eval(func_str, {"__builtins__": {}}, safe_dict)
             except:
                 return 0
+
         try:
             moment = rth_moment(pmf, range_values, r, a, tol, max_iter)
             analysis = {
@@ -566,19 +602,21 @@ class EnhancedMomentCalculator:
                 "convergence_info": f"Exact calculation with {len(range_values)} terms using rth_moment algorithm"
             }
             return moment, analysis
+
         except Exception as e:
             moment = 0
             for x_val in range_values:
                 safe_dict['x'] = x_val
                 prob = eval(func_str, {"__builtins__": {}}, safe_dict)
                 moment += ((x_val - a) ** r) * prob
+            
             analysis = {
                 "converged": True,
                 "terms_used": len(range_values),
                 "convergence_info": f"Exact calculation with {len(range_values)} terms (fallback)"
             }
             return moment, analysis
-    
+
     @staticmethod
     def calculate_crv_moment(func_str: str, range_bounds: Tuple[float, float], r: int, a: float) -> float:
         safe_dict = {
@@ -586,6 +624,7 @@ class EnhancedMomentCalculator:
             'sin': np.sin, 'cos': np.cos, 'tan': np.tan,
             'pi': np.pi, 'e': np.e
         }
+
         def integrand(x):
             safe_dict['x'] = x
             try:
@@ -593,6 +632,7 @@ class EnhancedMomentCalculator:
                 return ((x - a) ** r) * pdf_val
             except:
                 return 0
+
         try:
             moment, error = integrate.quad(
                 integrand, range_bounds[0], range_bounds[1],
@@ -632,11 +672,14 @@ def parse_range_input(range_input: str) -> Tuple[List[float], bool, str]:
     range_input = range_input.strip()
     is_infinite = False
     pattern_info = ""
+    
     if range_input.endswith("...") or range_input.endswith("…"):
         is_infinite = True
         base_values_str = range_input.replace("...", "").replace("…", "").strip()
         base_values = [float(x.strip()) for x in base_values_str.split(',') if x.strip()]
+        
         pattern_type, params = InfiniteSeriesHandler.detect_series_pattern(base_values)
+        
         if pattern_type == "arithmetic":
             pattern_info = f"Arithmetic sequence: start={params['start']}, step={params['diff']}"
             extended_values = InfiniteSeriesHandler.generate_extended_series(pattern_type, params, 200)
@@ -646,7 +689,9 @@ def parse_range_input(range_input: str) -> Tuple[List[float], bool, str]:
         else:
             pattern_info = "Custom pattern detected"
             extended_values = InfiniteSeriesHandler.generate_extended_series(pattern_type, params, 200)
+        
         return extended_values, is_infinite, pattern_info
+    
     values = [float(x.strip()) for x in range_input.split(',')]
     pattern_info = f"Finite sequence with {len(values)} values"
     return sorted(values), is_infinite, pattern_info
@@ -655,6 +700,7 @@ def parse_continuous_bound(bound_str: str) -> float:
     bound_str = bound_str.strip().lower()
     infinity_variants = ['inf', 'infinity', '∞', '+inf', '+infinity', '+∞']
     neg_infinity_variants = ['-inf', '-infinity', '-∞']
+    
     if bound_str in infinity_variants:
         return np.inf
     elif bound_str in neg_infinity_variants:
@@ -732,10 +778,8 @@ def show_landing_page():
 # Initialize session state
 if 'show_calculator' not in st.session_state:
     st.session_state.show_calculator = False
-
 if 'calc_precision' not in st.session_state:
     st.session_state.calc_precision = 8
-
 if 'display_precision' not in st.session_state:
     st.session_state.display_precision = 4
 
@@ -785,6 +829,7 @@ else:
                 • Infinite: <code>0,1,2,3,...</code>
             </div>
             """, unsafe_allow_html=True)
+            
             range_input = st.text_input(
                 "Range Values (comma-separated)",
                 value="",  # Blank by default
@@ -799,6 +844,7 @@ else:
                 • Infinite: <code>[0, inf]</code>
             </div>
             """, unsafe_allow_html=True)
+            
             col1, col2 = st.columns(2)
             with col1:
                 lower_bound_str = st.text_input(
@@ -877,7 +923,7 @@ else:
                 value=200,
                 help="Maximum number of terms to compute for infinite series"
             )
-    
+
     # Main content
     col1, col2 = st.columns([3, 2])
     with col1:
@@ -892,7 +938,9 @@ else:
                 if var_type == "Discrete (DRV)":
                     if not range_input:
                         raise ValueError("Please enter range values")
+                    
                     range_values, is_infinite, pattern_info = parse_range_input(range_input)
+                    
                     if is_infinite:
                         st.markdown(f"""
                         <div class="info-box">
@@ -901,18 +949,24 @@ else:
                             Computing with first {min(len(range_values), max_terms)} terms
                         </div>
                         """, unsafe_allow_html=True)
+                        
                         range_values = range_values[:max_terms]
+                    
                     is_valid, message, prob_sum, analysis = EnhancedProbabilityValidator.validate_drv_probabilities(
                         prob_func, range_values, is_infinite
                     )
                 else:
                     if not lower_bound_str or not upper_bound_str:
                         raise ValueError("Please enter both lower and upper bounds")
+                    
                     lower_bound = parse_continuous_bound(lower_bound_str)
                     upper_bound = parse_continuous_bound(upper_bound_str)
+                    
                     if not np.isinf(lower_bound) and not np.isinf(upper_bound) and lower_bound >= upper_bound:
                         raise ValueError("Lower bound must be less than upper bound")
+                    
                     range_bounds = (lower_bound, upper_bound)
+                    
                     if np.isinf(lower_bound) or np.isinf(upper_bound):
                         bound_desc = f"({lower_bound_str}, {upper_bound_str})"
                         st.markdown(f"""
@@ -920,6 +974,7 @@ else:
                             <strong>♾️ Infinite Interval:</strong> Integration over {bound_desc}
                         </div>
                         """, unsafe_allow_html=True)
+                    
                     is_valid, message, integral_val = EnhancedProbabilityValidator.validate_crv_pdf(prob_func, range_bounds)
                 
                 if is_valid:
@@ -952,6 +1007,7 @@ else:
                                     )
                             else:
                                 mean_val = EnhancedMomentCalculator.calculate_crv_moment(prob_func, range_bounds, 1, 0)
+                        
                         a_value = mean_val
                         st.markdown(f"""
                         <div class="metric-container">
@@ -959,12 +1015,14 @@ else:
                             <div class="metric-value">{mean_val:.{st.session_state.display_precision}f}</div>
                         </div>
                         """, unsafe_allow_html=True)
+                    
                     elif moment_about == "About the origin (a = 0)":
                         a_value = 0.0
                     else:
                         a_value = custom_a
                     
                     st.markdown(f"#### 🧮 Computing Moments (1 to {max_moment_order})...")
+                    
                     progress_bar = st.progress(0)
                     moments = {}
                     moment_analyses = {}
@@ -981,6 +1039,7 @@ else:
                                 moment_val = EnhancedMomentCalculator.calculate_crv_moment(
                                     prob_func, range_bounds, i, a_value
                                 )
+                        
                         moments[i] = moment_val
                     
                     progress_bar.empty()
@@ -1000,7 +1059,7 @@ else:
                                     moment_val = moments[r]
                                     colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#ff6b6b']
                                     color = colors[r % len(colors)]
-                                    # Removed (a_value) from label
+                                    
                                     st.markdown(f"""
                                     <div class="metric-container" style="background: {color};">
                                         <div class="metric-label">μ{to_subscript(r)}</div>
@@ -1035,6 +1094,7 @@ else:
                         if len(moments) >= 3 and std_dev > 1e-15:
                             skewness = moments[3] / (std_dev ** 3)
                             statistical_measures.append(("Skewness", skewness))
+                        
                         if len(moments) >= 4 and std_dev > 1e-15:
                             kurtosis = moments[4] / (std_dev ** 4)
                             excess_kurtosis = kurtosis - 3
@@ -1053,6 +1113,7 @@ else:
                                         label, value = statistical_measures[stat_idx]
                                         colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#ff6b6b', '#45b7d1']
                                         color = colors[stat_idx % len(colors)]
+                                        
                                         st.markdown(f"""
                                         <div class="metric-container" style="background: {color};">
                                             <div class="metric-label">{label}</div>
@@ -1067,7 +1128,6 @@ else:
                         row = {
                             'Moment Order (r)': r,
                             'Moment Value': f"{moment_val:.{st.session_state.display_precision}f}",
-                            # Removed "Interpretation" column
                         }
                         if var_type == "Discrete (DRV)" and is_infinite:
                             row.update({
@@ -1129,7 +1189,7 @@ else:
                     • Ensure mathematical validity
                 </div>
                 """, unsafe_allow_html=True)
-    
+
     with col2:
         st.markdown('<div class="section-header">📚 Help & Examples</div>', unsafe_allow_html=True)
         
@@ -1140,11 +1200,13 @@ else:
             Range: 1,2,3,4,5
             PMF: 0.2 if 1 <= x <= 5 else 0
             ```
+            
             **♾️ Geometric Distribution:**
             ```python
             Range: 0,1,2,3,...
             PMF: 0.3 * (0.7 ** x) if x >= 0 else 0
             ```
+            
             **🎯 Poisson Distribution:**
             ```python
             Range: 0,1,2,3,...
@@ -1159,11 +1221,13 @@ else:
             Range: [0, 1]
             PDF: 1 if 0 <= x <= 1 else 0
             ```
+            
             **⚡ Exponential Distribution:**
             ```python
             Range: [0, inf]
             PDF: 2*exp(-2*x) if x >= 0 else 0
             ```
+            
             **🔔 Normal Distribution:**
             ```python
             Range: [-inf, inf]
@@ -1176,6 +1240,7 @@ else:
             **🔄 Discrete Infinite Patterns:**
             - `0,1,2,3,...` → 0, 1, 2, 3, ...
             - `1,3,5,7,...` → 1, 3, 5, 7, ...
+            
             **📊 Continuous Infinite Bounds:**
             - `inf`, `infinity`, `∞` for +∞
             - `-inf`, `-infinity`, `-∞` for -∞
@@ -1187,12 +1252,16 @@ else:
             *Basic Math:*
             - `+`, `-`, `*`, `/`, `**`
             - `sqrt(x)`, `abs(x)`
+            
             *Exponential & Logarithmic:*
             - `exp(x)`, `log(x)`, `log10(x)`
+            
             *Trigonometric:*
             - `sin(x)`, `cos(x)`, `tan(x)`
+            
             *Special Functions:*
             - `factorial(n)` (discrete only)
+            
             *Constants:*
             - `pi`, `e`
             """)
