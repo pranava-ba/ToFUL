@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Enhanced CSS with modern dark-friendly design (unchanged)
+# Enhanced CSS with modern dark-friendly design
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -286,14 +286,6 @@ st.markdown("""
         background: linear-gradient(180deg, #5a6fd8, #6a42a0);
     }
 </style>
-""", unsafe_allow_html=True)
-
-# Animated main header
-st.markdown("""
-<div class="main-header">
-    <h1>Moments Calculator</h1>
-    <p>Advanced moment calculation with enhanced precision</p>
-</div>
 """, unsafe_allow_html=True)
 
 # Implement the rth_moment function from the first code snippet
@@ -589,7 +581,6 @@ class EnhancedMomentCalculator:
         # Use the rth_moment function for calculation
         try:
             # For infinite support, we'll use our rth_moment function
-            # We need to adapt the range_values to match the "infinite" format
             moment = rth_moment(pmf, "infinite", r, a, tol, max_iter)
             
             # Estimate how many terms were likely used (this is an approximation)
@@ -767,6 +758,14 @@ def parse_continuous_bound(bound_str: str) -> float:
         return -np.inf
     else:
         return float(bound_str)
+
+# Animated main header
+st.markdown("""
+<div class="main-header">
+    <h1>Moments Calculator</h1>
+    <p>Advanced moment calculation with enhanced precision</p>
+</div>
+""", unsafe_allow_html=True)
 
 # Sidebar with enhanced UI
 with st.sidebar:
@@ -957,6 +956,9 @@ with col1:
     
     # Process inputs and validate
     try:
+        # Initialize is_infinite to False by default
+        is_infinite = False
+        
         # Parse range with enhanced pattern detection
         if var_type == "Discrete (DRV)":
             range_values, is_infinite, pattern_info = parse_range_input(range_input)
@@ -1171,14 +1173,13 @@ with col1:
                                 </div>
                                 """, unsafe_allow_html=True)
             
-            # Detailed results table
+            # Detailed results table (without "About Point" column)
             st.markdown("#### 📋 Detailed Results Table")
             results_data = []
             for r, moment_val in moments.items():
                 row = {
                     'Moment Order (r)': r,
                     'Moment Value': f"{moment_val:.18f}",
-                    'About Point (a)': f"{a_value:.12f}",
                     'Interpretation': f"E[(X-{a_value:.2f})^{r}]"
                 }
                 if var_type == "Discrete (DRV)" and is_infinite:
@@ -1206,18 +1207,18 @@ with col1:
                     Current probability sum: <code>{prob_sum:.15f}</code><br>
                     Expected sum: <code>1.0</code><br>
                     Difference: <code>{abs(prob_sum - 1.0):.15f}</code><br>
-                    Terms computed: <code>{analysis.get('terms_computed', 'N/A') if 'analysis' in locals() else 'Not available'}</code>
+                    Terms computed: <code>{analysis.get('terms_computed', 'N/A')}</code>
                 </div>
                 """, unsafe_allow_html=True)
-    
-    # Show convergence issues for infinite series
-            if is_infinite and 'analysis' in locals():
-                st.markdown(f"""
-                <div class="info-box">
-                    <strong>♾️ Infinite Series Notes:</strong><br>
-                    {analysis.get('convergence_info', 'No convergence info available')}
-                </div>
-                """, unsafe_allow_html=True)
+                
+                # Show convergence issues for infinite series (only if is_infinite is defined and True)
+                if 'is_infinite' in locals() and is_infinite:
+                    st.markdown(f"""
+                    <div class="info-box">
+                        <strong>♾️ Infinite Series Notes:</strong><br>
+                        {analysis.get('convergence_info', 'No convergence info available')}
+                    </div>
+                    """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
                 <div class="warning-box">
@@ -1329,29 +1330,6 @@ with col2:
         - `pi` - π ≈ 3.14159
         - `e` - Euler's number ≈ 2.71828
         """)
-    
-    with st.expander("🎯 Moment Interpretation", expanded=False):
-        st.markdown("""
-        **📊 Moment Meanings:**
-        *Raw Moments (about origin):*
-        - **μ₁(0)** = Mean (E[X])
-        - **μ₂(0)** = Second moment (E[X²])
-        - **μ₃(0)** = Third moment (E[X³])
-        - **μᵣ(0)** = r-th moment (E[Xʳ])
-        *Central Moments (about mean):*
-        - **μ₁(μ)** = 0 (always)
-        - **μ₂(μ)** = Variance (σ²)
-        - **μ₃(μ)** = Used for skewness
-        - **μ₄(μ)** = Used for kurtosis
-        *Statistical Measures:*
-        - **Skewness** = μ₃/σ³ (asymmetry)
-        - **Kurtosis** = μ₄/σ⁴ (tail heaviness)
-        - **Excess Kurtosis** = Kurtosis - 3
-        *Higher Order Moments:*
-        - Capture distributional shape
-        - Useful for risk analysis
-        - Important in financial modeling
-        """)
 
 # Enhanced footer with statistics
 st.markdown("---")
@@ -1359,7 +1337,7 @@ st.markdown("---")
 if 'is_valid' in locals() and is_valid:
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        if var_type == "Discrete (DRV)" and is_infinite:
+        if var_type == "Discrete (DRV)" and 'is_infinite' in locals() and is_infinite:
             terms_used = max([moment_analyses[r]['terms_used'] for r in moments.keys()])
             st.metric("Terms Computed", f"{terms_used}")
         else:
@@ -1373,7 +1351,7 @@ if 'is_valid' in locals() and is_valid:
         if 'a_value' in locals():
             st.metric("Reference Point", f"{a_value:.8f}")
     with col4:
-        if var_type == "Discrete (DRV)" and is_infinite:
+        if var_type == "Discrete (DRV)" and 'is_infinite' in locals() and is_infinite:
             convergence_count = sum(1 for r in moments.keys() if moment_analyses[r]['converged'])
             st.metric("Converged Moments", f"{convergence_count}/{len(moments)}")
         elif 'moments' in locals():
