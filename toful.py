@@ -6,7 +6,7 @@ from typing import Tuple, Union, List
 import warnings
 warnings.filterwarnings('ignore')
 
-# Set page config for better aesthetics
+# Set page config
 st.set_page_config(
     page_title="Moments Calculator",
     page_icon="🎲",
@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Enhanced CSS with modern dark-friendly design
+# Enhanced CSS
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -297,31 +297,6 @@ st.markdown("""
     .moments-grid-5 { grid-template-columns: repeat(5, 1fr); }
 </style>
 """, unsafe_allow_html=True)
-
-# Implement the rth_moment function
-def rth_moment(pmf, support, r, c=0, tol=1e-12, max_iter=10**6):
-    moment = 0.0
-    if support == "infinite":
-        x = 0
-        cumulative = 0.0
-        while x < max_iter:
-            p = pmf(x)
-            if p < 0: 
-                raise ValueError("PMF cannot be negative")
-            moment += (x - c)**r * p
-            cumulative += p
-            if 1 - cumulative < tol:
-                break
-            x += 1
-        else:
-            raise RuntimeError("Maximum iterations reached. Tail too heavy?")
-    else:
-        for x in support:
-            p = pmf(x)
-            if p < 0: 
-                raise ValueError("PMF cannot be negative")
-            moment += (x - c)**r * p
-    return moment
 
 # Helper classes
 class InfiniteSeriesHandler:
@@ -628,6 +603,31 @@ class EnhancedMomentCalculator:
             moment, _ = integrate.quad(integrand, range_bounds[0], range_bounds[1], limit=100)
             return moment
 
+# Implement the rth_moment function
+def rth_moment(pmf, support, r, c=0, tol=1e-12, max_iter=10**6):
+    moment = 0.0
+    if support == "infinite":
+        x = 0
+        cumulative = 0.0
+        while x < max_iter:
+            p = pmf(x)
+            if p < 0: 
+                raise ValueError("PMF cannot be negative")
+            moment += (x - c)**r * p
+            cumulative += p
+            if 1 - cumulative < tol:
+                break
+            x += 1
+        else:
+            raise RuntimeError("Maximum iterations reached. Tail too heavy?")
+    else:
+        for x in support:
+            p = pmf(x)
+            if p < 0: 
+                raise ValueError("PMF cannot be negative")
+            moment += (x - c)**r * p
+    return moment
+
 def parse_range_input(range_input: str) -> Tuple[List[float], bool, str]:
     range_input = range_input.strip()
     is_infinite = False
@@ -679,7 +679,9 @@ def show_landing_page():
         <h1>Moments Calculator</h1>
         <p>Calculate statistical moments for discrete and continuous random variables</p>
     </div>
-
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
         <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 16px; backdrop-filter: blur(10px);">
             <h3 style="color: #667eea; margin: 0 0 1rem 0;">📘 What are Moments?</h3>
@@ -741,7 +743,7 @@ if 'display_precision' not in st.session_state:
 if not st.session_state.show_calculator:
     show_landing_page()
 else:
-    # Sidebar with enhanced UI
+    # Sidebar
     with st.sidebar:
         st.markdown('<div class="section-header">🎯 Configuration</div>', unsafe_allow_html=True)
         
@@ -765,7 +767,6 @@ else:
         st.markdown("---")
         st.markdown('<div class="section-header">🧮 Calculator Setup</div>', unsafe_allow_html=True)
         
-        # Variable type
         var_type = st.selectbox(
             "Choose Variable Type",
             ["Discrete (DRV)", "Continuous (CRV)"],
@@ -774,7 +775,6 @@ else:
         )
         
         st.markdown("---")
-        # Range input
         st.markdown('<div class="section-header">📊 Range Definition</div>', unsafe_allow_html=True)
         
         if var_type == "Discrete (DRV)":
@@ -816,7 +816,6 @@ else:
                 )
         
         st.markdown("---")
-        # Probability function
         st.markdown('<div class="section-header">⚡ Probability Function</div>', unsafe_allow_html=True)
         
         if var_type == "Discrete (DRV)":
@@ -837,7 +836,6 @@ else:
             )
         
         st.markdown("---")
-        # Moment configuration
         st.markdown('<div class="section-header">🎯 Moment Configuration</div>', unsafe_allow_html=True)
         
         moment_about = st.selectbox(
@@ -855,7 +853,6 @@ else:
             )
         
         st.markdown("---")
-        # Maximum moment order
         st.markdown('<div class="section-header">📈 Moment Order</div>', unsafe_allow_html=True)
         
         max_moment_order = st.number_input(
@@ -867,7 +864,6 @@ else:
             help="Calculate moments from 1st to r-th order"
         )
         
-        # Advanced options
         with st.expander("⚙️ Advanced Options", expanded=False):
             show_convergence = st.checkbox(
                 "Show convergence analysis",
@@ -882,7 +878,7 @@ else:
                 help="Maximum number of terms to compute for infinite series"
             )
     
-    # Main content area
+    # Main content
     col1, col2 = st.columns([3, 2])
     with col1:
         st.markdown('<div class="section-header">🎲 Analysis Results</div>', unsafe_allow_html=True)
@@ -891,10 +887,8 @@ else:
             st.info("👆 Enter your probability function in the sidebar to begin calculation")
         else:
             try:
-                # Initialize is_infinite
                 is_infinite = False
                 
-                # Parse range
                 if var_type == "Discrete (DRV)":
                     if not range_input:
                         raise ValueError("Please enter range values")
@@ -928,7 +922,6 @@ else:
                         """, unsafe_allow_html=True)
                     is_valid, message, integral_val = EnhancedProbabilityValidator.validate_crv_pdf(prob_func, range_bounds)
                 
-                # Display validation results
                 if is_valid:
                     st.markdown(f"""
                     <div class="success-box">
@@ -936,7 +929,6 @@ else:
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # Show convergence analysis for infinite series
                     if var_type == "Discrete (DRV)" and is_infinite and show_convergence:
                         st.markdown(f"""
                         <div class="info-box">
@@ -947,7 +939,6 @@ else:
                         </div>
                         """, unsafe_allow_html=True)
                     
-                    # Calculate reference point
                     if moment_about == "About the mean (a = μ)":
                         with st.spinner("🧮 Computing mean..."):
                             if var_type == "Discrete (DRV)":
@@ -973,7 +964,6 @@ else:
                     else:
                         a_value = custom_a
                     
-                    # Calculate moments
                     st.markdown(f"#### 🧮 Computing Moments (1 to {max_moment_order})...")
                     progress_bar = st.progress(0)
                     moments = {}
@@ -1010,7 +1000,7 @@ else:
                                     moment_val = moments[r]
                                     colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#ff6b6b']
                                     color = colors[r % len(colors)]
-                                    # Removed (a_value) from label - just show μ₁, μ₂, etc.
+                                    # Removed (a_value) from label
                                     st.markdown(f"""
                                     <div class="metric-container" style="background: {color};">
                                         <div class="metric-label">μ{to_subscript(r)}</div>
@@ -1018,7 +1008,6 @@ else:
                                     </div>
                                     """, unsafe_allow_html=True)
                     
-                    # Show convergence details for infinite DRV
                     if var_type == "Discrete (DRV)" and is_infinite and show_convergence:
                         st.markdown("#### 🔍 Convergence Analysis")
                         convergence_data = []
@@ -1033,7 +1022,6 @@ else:
                         convergence_df = pd.DataFrame(convergence_data)
                         st.dataframe(convergence_df, use_container_width=True)
                     
-                    # Statistical measures for central moments (only up to 4th moment)
                     if moment_about == "About the mean (a = μ)" and len(moments) >= 2:
                         st.markdown("#### 📊 Statistical Measures")
                         variance = moments[2]
@@ -1044,7 +1032,6 @@ else:
                             ("Std Dev (σ)", std_dev)
                         ]
                         
-                        # Only add up to 4th moment stats
                         if len(moments) >= 3 and std_dev > 1e-15:
                             skewness = moments[3] / (std_dev ** 3)
                             statistical_measures.append(("Skewness", skewness))
@@ -1054,7 +1041,6 @@ else:
                             statistical_measures.append(("Kurtosis", kurtosis))
                             statistical_measures.append(("Excess Kurtosis", excess_kurtosis))
                         
-                        # Compact grid for statistical measures
                         cols_per_row = min(4, len(statistical_measures))
                         rows = (len(statistical_measures) + cols_per_row - 1) // cols_per_row
                         
@@ -1074,15 +1060,14 @@ else:
                                         </div>
                                         """, unsafe_allow_html=True)
                     
-                    # Detailed results table (without "About Point" column)
+                    # Detailed results table (without "Interpretation" column)
                     st.markdown("#### 📋 Detailed Results Table")
                     results_data = []
                     for r, moment_val in moments.items():
                         row = {
                             'Moment Order (r)': r,
                             'Moment Value': f"{moment_val:.{st.session_state.display_precision}f}",
-                            # Removed "About Point (a)" column
-                            'Interpretation': f"E[(X-{a_value:.2f}){to_subscript(r)}]"
+                            # Removed "Interpretation" column
                         }
                         if var_type == "Discrete (DRV)" and is_infinite:
                             row.update({
@@ -1101,7 +1086,7 @@ else:
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    # Debug information with safe variable access
+                    # Fixed: Safe access to 'analysis'
                     if var_type == "Discrete (DRV)":
                         debug_info = f"""
                         <div class="warning-box">
@@ -1110,6 +1095,7 @@ else:
                             Expected sum: <code>1.0</code><br>
                             Difference: <code>{abs(prob_sum - 1.0):.{st.session_state.display_precision}f}</code>
                         """
+                        # Only add analysis info if it exists
                         if 'analysis' in locals():
                             debug_info += f"<br>Terms computed: <code>{analysis.get('terms_computed', 'N/A')}</code>"
                         debug_info += "</div>"
@@ -1211,12 +1197,10 @@ else:
             - `pi`, `e`
             """)
 
-    # Add back button to return to landing page
     if st.button("🏠 Back to Home", use_container_width=True):
         st.session_state.show_calculator = False
         st.rerun()
 
-# Footer
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; padding: 1rem;">
