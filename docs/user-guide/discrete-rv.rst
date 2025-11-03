@@ -1,7 +1,3 @@
-# ============================================
-# docs/user-guide/discrete-rv.rst
-# ============================================
-cat > docs/user-guide/discrete-rv.rst << 'EOF'
 Discrete Random Variables
 ==========================
 
@@ -15,4 +11,3 @@ Coming soon! This page will cover:
 * Best practices
 
 See :doc:`/getting-started/quickstart` for examples.
-EOF
