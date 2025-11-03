@@ -1,7 +1,3 @@
-# ============================================
-# docs/user-guide/mathematical-functions.rst
-# ============================================
-cat > docs/user-guide/mathematical-functions.rst << 'EOF'
 Mathematical Functions
 ======================
 
@@ -16,4 +12,3 @@ Coming soon! This page will document:
 * Syntax examples
 
 See :doc:`/getting-started/web-app` for function list.
-EOF
