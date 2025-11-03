@@ -51,8 +51,7 @@ PMF: 0.3 * (0.7 ** x) if x >= 0 else 0
 Range: [0, inf]
 PDF: 2*exp(-2*x) if x >= 0 else 0
 ```
-
-📖 **[Full Documentation](https://toful.readthedocs.io)** - Detailed guides, API reference, and examples
+[![Documentation Status](https://readthedocs.org/projects/toful/badge/?version=latest)](https://toful.readthedocs.io/en/latest/?badge=latest)
 
 ## Contributing
 
