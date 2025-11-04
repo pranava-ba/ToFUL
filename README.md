@@ -6,7 +6,7 @@
 
 **A powerful interactive tool for computing statistical moments of probability distributions.**
 
-Calculate raw moments, central moments, variance, skewness, kurtosis, and more for both discrete and continuous random variables with real-time validation and beautiful visualizations.
+Calculate raw moments, central moments, variance, skewness, kurtosis, and more for both discrete and continuous random variables with real-time validation.
 
 🚀 **[Try it now](https://toful1.streamlit.app/)** - No installation needed!
 
